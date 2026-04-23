@@ -15,6 +15,14 @@ namespace Endpoint.Site.Controllers
         
         public IActionResult Index()
         {
+            var token = Request.Cookies["AccessToken"];
+
+            if (string.IsNullOrWhiteSpace(token))
+            {
+                return RedirectToAction("Login", "Authentication");
+            }
+
+            ViewBag.AccessToken = token;
             return View();
         }
         

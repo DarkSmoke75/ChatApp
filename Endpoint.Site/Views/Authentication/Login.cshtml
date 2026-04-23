@@ -1,0 +1,45 @@
+﻿@using Endpoint.Site.Models.ViewModels.AuthenticationViewModel
+@model LoginViewModel
+@{
+    ViewData["Title"] = "Login";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ورود</title>
+    @* <!-- font---------------------------------------->
+    <link rel="stylesheet" href="~/SiteTemplate/assets/css/vendor/font-awesome.min.css">
+    <link rel="stylesheet" href="~/SiteTemplate/assets/css/vendor/materialdesignicons.css">
+    <!-- plugin-------------------------------------->
+    <link rel="stylesheet" href="~/SiteTemplate/assets/css/vendor/bootstrap.css">
+    <link rel="stylesheet" href="~/SiteTemplate/assets/css/vendor/owl.carousel.min.css">
+    <link rel="stylesheet" href="~/SiteTemplate/assets/css/vendor/noUISlider.min.css">
+    <!-- main-style---------------------------------->
+    <link rel="stylesheet" href="~/SiteTemplate/assets/css/main.css"> *@
+</head>
+<body>
+    <form asp-action="Login" asp-controller="Authentication" method="post" class="form-account text-right">
+        <div asp-validation-summary="All" class="text-danger"></div>
+        <div class="form-account-title">
+            <label>ایمیل</label>
+            <input asp-for="Email" class="number-email-input" />
+        </div>
+        <br />
+        <div class="form-account-title">
+            <label>رمز عبور</label>
+            <input asp-for="Password" type="password" class="password-input" />
+        </div>
+        <br />
+        <div class="form-row-account">
+            <button type="submit" class="btn btn-primary btn-register">ورود</button>
+        </div>
+
+    </form>
+</body>
+
+</html>
+

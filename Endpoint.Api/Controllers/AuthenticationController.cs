@@ -4,6 +4,7 @@ using ChatApp.Application.Services.JWT;
 using ChatApp.Application.Services.Users.Commands.RegisterUser;
 using ChatApp.Application.Services.Users.Commands.UserLogin;
 using ChatApp.Application.Services.Users.FacadPattern;
+using ChatApp.Common.Dto;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Newtonsoft.Json.Linq;
@@ -44,7 +45,12 @@ namespace Endpoint.Api.Controllers
 
             var token = _jwtService.GenerateToken(user);
 
-            return Ok(new { token });
+            return Ok(new ResultDto<string>
+            {
+                IsSuccess= true,
+                Message="login Successful",
+                Data=token,
+            });
         }
 
         [HttpPost("SignUp")]
@@ -57,7 +63,12 @@ namespace Endpoint.Api.Controllers
             }
             var user = _context.Users.FirstOrDefault(u => u.Id ==signUpResult.Data.UserId);
             var token = _jwtService.GenerateToken(user);
-            return Ok(new { token });
+            return Ok(new ResultDto<string>
+            {
+                IsSuccess = true,
+                Message = "کاربر با موفقیت ایجاد شد",
+                Data = token,
+            });
         }
 
     }

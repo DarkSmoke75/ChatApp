@@ -1,8 +1,10 @@
-﻿using Microsoft.AspNetCore.SignalR;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.SignalR;
 using System.Security.Claims;
 
 namespace Endpoint.Api.Hubs
 {
+    [Authorize]
     public class ChatHub:Hub
     {
         private static readonly Dictionary<string, string> OnlineUsers = new();
