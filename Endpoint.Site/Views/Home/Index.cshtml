@@ -1,0 +1,55 @@
+﻿@{
+    ViewData["Title"] = "Home Page";
+}
+
+<h2>Chat Test</h2>
+
+<div>
+    <input type="text" id="messageInput" placeholder="Type message..." />
+    <button onclick="sendMessage()">Send</button>
+</div>
+
+<hr />
+
+<ul id="messagesList"></ul>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/7.0.5/signalr.min.js"></script>
+
+<script>
+    const token = localStorage.getItem("token"); // JWT
+
+    const connection = new signalR.HubConnectionBuilder()
+        .withUrl("https://localhost:7243/hubs/chat", {
+            accessTokenFactory: () => token
+        })
+        .withAutomaticReconnect()
+        .build();
+
+    connection.on("ReceiveMessage", function (message) {
+        const li = document.createElement("li");
+        li.textContent = JSON.stringify(message);
+        document.getElementById("messagesList").appendChild(li);
+    });
+
+    connection.start()
+        .then(() => console.log("✅ Connected to SignalR"))
+        .catch(err => console.error(err));
+
+    function sendMessage() {
+
+        const message = document.getElementById("messageInput").value;
+
+        fetch("https://localhost:7243/api/messages/send", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "Authorization": "Bearer " + token
+            },
+            body: JSON.stringify({
+                conversationId: 2,
+                content: message,
+                messageType: 0
+            })
+        });
+    }
+</script>

@@ -1,0 +1,17 @@
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace ChatApp.Domain.Entities.Common
+{
+    public class BaseEntity<TKey>
+    {
+        public TKey Id { get; set; }
+        public DateTime CreationDate { get; set; }
+        public DateTime? ModificationDate { get; set; }
+        public bool IsDeleted { get; set; } = false;
+        public DateTime? DeletionDate { get; set; }
+    }
+}
