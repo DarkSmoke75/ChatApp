@@ -39,13 +39,18 @@ builder.Services.AddAuthentication(options =>
     {
         OnMessageReceived = context =>
         {
-            var accessToken = context.Request.Query["access_token"];
-
             var path = context.HttpContext.Request.Path;
-            if (!string.IsNullOrEmpty(accessToken) &&
-                path.StartsWithSegments("/hubs/chat"))
+
+            if (path.StartsWithSegments("/hubs/chat"))
             {
-                context.Token = accessToken;
+                var token = context.Request.Cookies["AccessToken"];
+
+                Console.WriteLine("SignalR Cookie Token Exists: " + !string.IsNullOrEmpty(token));
+
+                if (!string.IsNullOrEmpty(token))
+                {
+                    context.Token = token;
+                }
             }
 
             return Task.CompletedTask;

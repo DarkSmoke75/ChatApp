@@ -1,0 +1,88 @@
+﻿@using Endpoint.Site.Models.ViewModels.ConversationViewModel
+@model List<MessageViewModel>
+
+@{
+    ViewData["Title"] = "GetChat";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+
+    var conversationId = Model.Any()
+        ? Model.First().ConversationId
+        : 0;
+}
+
+<div class="chat-container">
+
+    <div id="messagesBox">
+        @foreach (var item in Model)
+        {
+            <div class="message-item">
+                <span class="sender">@item.UserId:</span>
+                <span class="content">@item.Content</span>
+            </div>
+        }
+    </div>
+
+    <form asp-action="SendMessage" method="post" class="send-message-form">
+        <input type="hidden" name="ConversationId" value="@conversationId" />
+        <input type="hidden" name="MessageType" value="0" />
+
+        <input type="text"
+               name="Content"
+               id="messageInput"
+               placeholder="Type message..."
+               autocomplete="off"
+               required />
+
+        <button type="submit">Send</button>
+    </form>
+
+</div>
+
+@section Scripts {
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/8.0.0/signalr.min.js"></script>
+
+    <script>
+        const messagesBox = document.getElementById("messagesBox");
+
+        const connection = new signalR.HubConnectionBuilder()
+            .withUrl("https://localhost:7243/hubs/chat", {
+                withCredentials: true
+            })
+            .withAutomaticReconnect()
+            .build();
+
+        connection.on("ReceiveMessage", function (message) {
+            console.log("ReceiveMessage:", message);
+
+            appendMessage(message.senderId, message.content);
+        });
+
+        connection.start()
+            .then(function () {
+                console.log("SignalR connected");
+            })
+            .catch(function (err) {
+                console.error("SignalR connection error:", err);
+            });
+
+        function appendMessage(senderId, content) {
+            const messageDiv = document.createElement("div");
+            messageDiv.classList.add("message-item");
+
+            const senderSpan = document.createElement("span");
+            senderSpan.classList.add("sender");
+            senderSpan.textContent = senderId + ": ";
+
+            const contentSpan = document.createElement("span");
+            contentSpan.classList.add("content");
+            contentSpan.textContent = content;
+
+            messageDiv.appendChild(senderSpan);
+            messageDiv.appendChild(contentSpan);
+
+            messagesBox.appendChild(messageDiv);
+
+            messagesBox.scrollTop = messagesBox.scrollHeight;
+        }
+    </script>
+}

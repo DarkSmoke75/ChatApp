@@ -7,8 +7,8 @@
 
 @foreach (var item in Model)
 {
-    <a>
-        @(string.IsNullOrEmpty(item.Title) ? item.OtherUserName : item.Title)
+    <a asp-action="GetChat" asp-route-id="@item.ConversationId">
+        @item.DisplayName
     </a>
 }
 

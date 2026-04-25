@@ -1,9 +1,13 @@
 ﻿using ChatApp.Application.Services.ApiClient;
 using ChatApp.Application.Services.Conversations.Queries.GetConversations;
+using ChatApp.Application.Services.Messages.Commands.SendMessage;
+using ChatApp.Application.Services.Users.Commands.UserLogin;
+using Endpoint.Site.Models.Dtos.Authentications;
 using Endpoint.Site.Models.Dtos.Common;
 using Endpoint.Site.Models.ViewModels.ConversationViewModel;
 using Microsoft.AspNetCore.Identity.Data;
 using Microsoft.AspNetCore.Mvc;
+using NuGet.Protocol.Plugins;
 using System.Text;
 using System.Text.Json;
 
@@ -61,20 +65,92 @@ namespace Endpoint.Site.Controllers
             return View(result.Data);
             
         }
-        public async Task<IActionResult> Create()
+        public async Task<IActionResult> NewChat()
         {
             //create new conversation
             return View();
         }
-        public async Task<IActionResult> Chat(int id)
+        public async Task<IActionResult> GetChat(long id)
         {
-            //get conversation details from api and pass to view
-            return View();
+            var client = _apiClientService.CreateClientWithToken(HttpContext);
+            var requestDto = new GetConversationRequestDto()
+            {
+                Take = 20,
+                Cursor = 0
+            };
+            var json = JsonSerializer.Serialize(requestDto);
+            var content = new StringContent(json, Encoding.UTF8, "application/json");
+
+            var response = await client.GetAsync($"api/Messages/Get/{id}?take={requestDto.Take}&cursor={requestDto.Cursor}");
+
+            if (!response.IsSuccessStatusCode)
+            {
+                ModelState.AddModelError("", "خطا در دریافت پیام ها");
+                return View();
+            }
+            
+
+            var responseJson = await response.Content.ReadAsStringAsync();
+
+            var result = JsonSerializer.Deserialize<ApiResultDto<List<MessageViewModel>>>(
+                responseJson,
+                new JsonSerializerOptions
+                {
+                    PropertyNameCaseInsensitive = true
+                }
+            );
+
+            if (result == null || !result.IsSuccess)
+            {
+                return View();
+            }
+
+            return View(result.Data);
+            
         }
-        public async Task<IActionResult> SendMessage(int id)
+        public async Task<IActionResult> SendMessage(MessageViewModel message)
         {
+            
+            if (!ModelState.IsValid)
+            {
+                return View(message);
+            }
+            var client = _apiClientService.CreateClientWithToken(HttpContext);
+
+            var requestDto = new RequestSendMessageDto()
+            {
+                Content = message.Content,
+                ConversationId = message.ConversationId,
+                MessageType = message.MessageType,
+            };
+            
+
+            var json = JsonSerializer.Serialize(requestDto);
+            var content = new StringContent(json, Encoding.UTF8, "application/json");
+
+            var response = await client.PostAsync("api/Messages/Send", content);
+
+            if (!response.IsSuccessStatusCode)
+            {
+                ModelState.AddModelError("", "خطا در ارسال پیام");
+                return View(message);
+            }
+
+            var responseContent = await response.Content.ReadAsStringAsync();
+
+            var result = JsonSerializer.Deserialize<ApiResultDto<ResultSendMessageDto>>(responseContent,
+                new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+
+            if (result == null || !result.IsSuccess )
+            {
+                ModelState.AddModelError("", "خطا در دریافت پیام");
+                return View(message);
+            }
+            
+
+            return RedirectToAction("GetChat", "Conversation",new { id=message.ConversationId });
             //send message to conversation
-            return View();
+            //return View("GetChat", message.ConversationId);
         }
     }
 }
