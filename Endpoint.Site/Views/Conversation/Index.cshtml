@@ -1,0 +1,14 @@
+﻿@using Endpoint.Site.Models.ViewModels.ConversationViewModel
+@model List<ConversationViewModel>
+@{
+    ViewData["Title"] = "Index";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+@foreach (var item in Model)
+{
+    <a>
+        @(string.IsNullOrEmpty(item.Title) ? item.OtherUserName : item.Title)
+    </a>
+}
+

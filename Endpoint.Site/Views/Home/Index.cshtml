@@ -1,55 +1,105 @@
-﻿@{
-    ViewData["Title"] = "Home Page";
+﻿@* @model Endpoint.Site.Models.ViewModels.ChatTestViewModel *@
+
+@{
+    // ViewData["Title"] = "Chat Test";
 }
 
 <h2>Chat Test</h2>
 
-<div>
+@* <div>
     <input type="text" id="messageInput" placeholder="Type message..." />
-    <button onclick="sendMessage()">Send</button>
+    <button type="button" id="sendBtn">Send</button>
 </div>
 
 <hr />
 
 <ul id="messagesList"></ul>
 
+<!-- Token از MVC -->
+<input type="hidden" id="accessToken" value="@Model.AccessToken" />
+
+<!-- SignalR -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/7.0.5/signalr.min.js"></script>
 
 <script>
-    const token = localStorage.getItem("token"); // JWT
+    (function () {
 
-    const connection = new signalR.HubConnectionBuilder()
-        .withUrl("https://localhost:7243/hubs/chat", {
-            accessTokenFactory: () => token
-        })
-        .withAutomaticReconnect()
-        .build();
+        const tokenInput = document.getElementById("accessToken");
+        const token = tokenInput ? tokenInput.value : null;
 
-    connection.on("ReceiveMessage", function (message) {
-        const li = document.createElement("li");
-        li.textContent = JSON.stringify(message);
-        document.getElementById("messagesList").appendChild(li);
-    });
+        if (!token) {
+            console.error("❌ Token not found");
+            return;
+        }
 
-    connection.start()
-        .then(() => console.log("✅ Connected to SignalR"))
-        .catch(err => console.error(err));
+        const messageInput = document.getElementById("messageInput");
+        const sendBtn = document.getElementById("sendBtn");
+        const messagesList = document.getElementById("messagesList");
 
-    function sendMessage() {
-
-        const message = document.getElementById("messageInput").value;
-
-        fetch("https://localhost:7243/api/messages/send", {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-                "Authorization": "Bearer " + token
-            },
-            body: JSON.stringify({
-                conversationId: 2,
-                content: message,
-                messageType: 0
+        // اتصال SignalR
+        const connection = new signalR.HubConnectionBuilder()
+            .withUrl("https://localhost:7243/hubs/chat", {
+                accessTokenFactory: () => token
             })
+            .withAutomaticReconnect()
+            .build();
+
+        // دریافت پیام
+        connection.on("ReceiveMessage", function (message) {
+            const li = document.createElement("li");
+            li.textContent = JSON.stringify(message);
+            messagesList.appendChild(li);
         });
-    }
-</script>
+
+        // شروع اتصال
+        async function startConnection() {
+            try {
+                await connection.start();
+                console.log("✅ Connected to SignalR");
+            } catch (err) {
+                console.error("❌ Connection failed:", err);
+                setTimeout(startConnection, 3000);
+            }
+        }
+
+        startConnection();
+
+        // ارسال پیام
+        async function sendMessage() {
+
+            const message = messageInput.value.trim();
+
+            if (!message) return;
+
+            try {
+                await fetch("https://localhost:7243/api/messages/send", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        "Authorization": "Bearer " + token
+                    },
+                    body: JSON.stringify({
+                        conversationId: 2,
+                        content: message,
+                        messageType: 0
+                    })
+                });
+
+                messageInput.value = "";
+            } catch (err) {
+                console.error("❌ Send failed:", err);
+            }
+        }
+
+        // دکمه
+        sendBtn.addEventListener("click", sendMessage);
+
+        // ارسال با Enter
+        messageInput.addEventListener("keypress", function (e) {
+            if (e.key === "Enter") {
+                sendMessage();
+            }
+        });
+
+    })();
+</script> *@
