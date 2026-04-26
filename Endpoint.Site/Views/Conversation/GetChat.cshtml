@@ -1,154 +1,260 @@
-﻿@using Endpoint.Site.Models.ViewModels.ConversationViewModel
+@using Endpoint.Site.Models.ViewModels.ConversationViewModel
 @model ChatViewModel
 
 @{
-    ViewData["Title"] = "GetChat";
-    Layout = "~/Views/Shared/_Layout.cshtml";
-
+    ViewData["Title"] = "Chat";
     var conversationId = Model.ConversationId;
-
-    var firstSequence = Model.Messages.Any()
-        ? Model.Messages.Min(x => x.SequenceNumber)
-        : 0;
+    var firstSequence = Model.Messages.Any() ? Model.Messages.Min(x => x.SequenceNumber) : 0;
+    var serverToken = Context.Request.Cookies["AccessToken"] ?? "";
+    var userDisplayNames = ViewBag.UserDisplayNames as Dictionary<long, string> ?? new Dictionary<long, string>();
 }
-@if (TempData["Error"] != null)
-{
-    <div class="alert alert-danger">
-        @TempData["Error"]
+
+<section class="thread-page">
+    <div class="thread-header">
+        <div>
+            <h1>Thread #@conversationId</h1>
+        </div>
+
+        <div class="thread-actions">
+            <a asp-action="Index" asp-controller="Conversation" class="app-button secondary">All conversations</a>
+            <a asp-action="NewChat" asp-controller="Conversation" class="app-button">New chat</a>
+        </div>
     </div>
-}
-<div class="chat-container">
 
-    <div id="messagesBox" style="height:400px;overflow-y:auto">
-        @foreach (var item in Model.Messages)
-        {
-            <div class="message-item">
-                <span class="sender">@item.UserId:</span>
-                <span class="content">@item.Content</span>
+    @if (TempData["Error"] != null)
+    {
+        <div class="thread-alert">
+            @TempData["Error"]
+        </div>
+    }
+
+    <div class="thread-shell">
+        <div class="thread-main thread-main-full">
+            <div class="surface-panel thread-messages-panel">
+                <div class="panel-header thread-panel-header">
+                    <div>
+                        <h2>Messages</h2>
+                    </div>
+                    <div class="thread-panel-meta">
+                        <span class="status-pill" id="threadConnectionStatus">Offline</span>
+                        <span class="thread-count" id="loadedMessageCount">@Model.Messages.Count</span>
+                    </div>
+                </div>
+
+                <div id="messagesBox" class="thread-messages-box">
+                    @if (Model.Messages == null || !Model.Messages.Any())
+                    {
+                        <div class="empty-state thread-empty-state" id="threadEmptyState">
+                            <h3>No messages yet</h3>
+                            <p>Use the composer below to send the first message in this conversation.</p>
+                        </div>
+                    }
+                    else
+                    {
+                        @foreach (var item in Model.Messages)
+                        {
+                            var displayName = userDisplayNames.TryGetValue(item.UserId, out var name)
+                                ? name
+                                : $"User {item.UserId}";
+                            <article class="thread-message-item" data-sequence="@item.SequenceNumber">
+                                <div class="message-topline">
+                                    <span class="message-badge">@displayName</span>
+                                    <span class="message-time">#@item.SequenceNumber</span>
+                                </div>
+                                <p class="message-content">@item.Content</p>
+                            </article>
+                        }
+                    }
+                </div>
             </div>
-        }
+
+            <div class="surface-panel composer-panel">
+                <form asp-action="SendMessage" method="post" class="composer-box">
+                    <input type="hidden" name="ConversationId" value="@conversationId" />
+                    <input type="hidden" name="MessageType" value="0" />
+
+                    <textarea
+                        name="Content"
+                        id="messageInput"
+                        class="composer-input"
+                        rows="4"
+                        placeholder="Write a message and press Send."
+                        autocomplete="off"
+                        required></textarea>
+
+                    <div class="composer-actions">
+                        <span class="helper-text" id="threadFeedbackText">Ready</span>
+                        <button type="submit" class="app-button">Send message</button>
+                    </div>
+                </form>
+            </div>
+        </div>
     </div>
-
-    <form asp-action="SendMessage" method="post" class="send-message-form">
-        <input type="hidden" name="ConversationId" value="@conversationId" />
-        <input type="hidden" name="MessageType" value="0" />
-
-        <input type="text"
-               name="Content"
-               id="messageInput"
-               placeholder="Type message..."
-               autocomplete="off"
-               required />
-
-        <button type="submit">Send</button>
-    </form>
-
-</div>
+</section>
 
 @section Scripts {
     <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/8.0.0/signalr.min.js"></script>
-
     <script>
-        const messagesBox = document.getElementById("messagesBox");
-        window.addEventListener("load", scrollToBottom);
-        const connection = new signalR.HubConnectionBuilder()
-            .withUrl("https://localhost:7243/hubs/chat", {
-                withCredentials: true
-            })
-            .withAutomaticReconnect()
-            .build();
+        (function () {
+            const messagesBox = document.getElementById("messagesBox");
+            const statusEl = document.getElementById("threadConnectionStatus");
+            const feedbackEl = document.getElementById("threadFeedbackText");
+            const countEl = document.getElementById("loadedMessageCount");
+            const emptyState = document.getElementById("threadEmptyState");
+            const conversationId = @conversationId;
+            let beforeSequence = @firstSequence;
+            let isLoadingOlder = false;
+            let hasMoreMessages = true;
+            const accessToken = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(serverToken));
+            const userDisplayNames = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(userDisplayNames));
 
-        connection.on("ReceiveMessage", function (message) {
-            console.log("ReceiveMessage:", message);
-
-            appendMessage(message.senderId, message.content);
-        });
-
-        connection.start()
-            .then(function () {
-                console.log("SignalR connected");
-            })
-            .catch(function (err) {
-                console.error("SignalR connection error:", err);
-            });
-                    let beforeSequence = @firstSequence;
-        let isLoadingOlder = false;
-        let hasMoreMessages = true;
-        const conversationId = @conversationId;
-
-        messagesBox.addEventListener("scroll", async function () {
-            if (messagesBox.scrollTop > 20) return;
-            if (isLoadingOlder || !hasMoreMessages || beforeSequence <= 0) return;
-
-            isLoadingOlder = true;
-
-            const oldScrollHeight = messagesBox.scrollHeight;
-
-            const response = await fetch(
-                `/Conversation/LoadMoreMessages?conversationId=${conversationId}&beforeSequence=${beforeSequence}`
-            );
-
-            if (!response.ok) {
-                isLoadingOlder = false;
-                return;
+            function updateCount() {
+                countEl.textContent = messagesBox.querySelectorAll(".thread-message-item").length;
             }
 
-            const result = await response.json();
-
-            if (!result.isSuccess || !result.data || result.data.length === 0) {
-                hasMoreMessages = false;
-                isLoadingOlder = false;
-                return;
+            function setFeedback(message, isError) {
+                feedbackEl.textContent = message;
+                feedbackEl.style.color = isError ? "#9d2f2f" : "#5f6c82";
             }
 
-            result.data.reverse().forEach(message => {
-                prependMessage(message.userId, message.content);
+            function setStatus(text, stateClass) {
+                statusEl.textContent = text;
+                statusEl.className = "status-pill";
+                if (stateClass) {
+                    statusEl.classList.add(stateClass);
+                }
+            }
+
+            function removeEmptyState() {
+                if (emptyState) {
+                    emptyState.remove();
+                }
+            }
+
+            function getDisplayName(userId) {
+                const key = String(userId ?? "");
+                return userDisplayNames[key] || ("User " + (userId ?? "-"));
+            }
+
+            function createMessage(message, prepend) {
+                removeEmptyState();
+                const item = document.createElement("article");
+                item.className = "thread-message-item";
+                item.dataset.sequence = message.sequenceNumber ?? "";
+                const topLine = document.createElement("div");
+                topLine.className = "message-topline";
+
+                const badge = document.createElement("span");
+                badge.className = "message-badge";
+                badge.textContent = getDisplayName(message.userId ?? message.senderId);
+
+                const time = document.createElement("span");
+                time.className = "message-time";
+                time.textContent = "#" + (message.sequenceNumber ?? "live");
+
+                const content = document.createElement("p");
+                content.className = "message-content";
+                content.textContent = message.content ?? "";
+
+                topLine.appendChild(badge);
+                topLine.appendChild(time);
+                item.appendChild(topLine);
+                item.appendChild(content);
+
+                if (prepend) {
+                    messagesBox.prepend(item);
+                } else {
+                    messagesBox.appendChild(item);
+                }
+
+                updateCount();
+            }
+
+            async function loadOlderMessages() {
+                if (isLoadingOlder || !hasMoreMessages || beforeSequence <= 0) {
+                    return;
+                }
+
+                isLoadingOlder = true;
+                setFeedback("Loading older messages...", false);
+
+                try {
+                    const oldScrollHeight = messagesBox.scrollHeight;
+                    const response = await fetch(`/Conversation/LoadMoreMessages?conversationId=${conversationId}&beforeSequence=${beforeSequence}`);
+                    if (!response.ok) {
+                        throw new Error("Failed to load older messages.");
+                    }
+
+                    const result = await response.json();
+                    if (!result.isSuccess || !result.data || result.data.length === 0) {
+                        hasMoreMessages = false;
+                        setFeedback("No older messages were returned.", false);
+                        return;
+                    }
+
+                    result.data.reverse().forEach(function (message) {
+                        createMessage(message, true);
+                    });
+
+                    beforeSequence = Math.min.apply(null, result.data.map(function (x) { return x.sequenceNumber; }));
+                    messagesBox.scrollTop = messagesBox.scrollHeight - oldScrollHeight;
+                    setFeedback("Older messages loaded.", false);
+                } catch (error) {
+                    console.error(error);
+                    setFeedback("Could not load older messages.", true);
+                } finally {
+                    isLoadingOlder = false;
+                }
+            }
+
+            if (accessToken) {
+                const connection = new signalR.HubConnectionBuilder()
+                    .withUrl("https://localhost:7243/hubs/chat", {
+                        accessTokenFactory: function () { return accessToken; }
+                    })
+                    .withAutomaticReconnect()
+                    .build();
+
+                connection.on("ReceiveMessage", function (message) {
+                    createMessage(message, false);
+                    messagesBox.scrollTop = messagesBox.scrollHeight;
+                    setFeedback("A live message arrived.", false);
+                });
+
+                connection.onreconnecting(function () {
+                    setStatus("Reconnecting", "connecting");
+                });
+
+                connection.onreconnected(function () {
+                    setStatus("Connected", "connected");
+                });
+
+                connection.start()
+                    .then(function () {
+                        setStatus("Connected", "connected");
+                    })
+                    .catch(function (err) {
+                        console.error(err);
+                        setStatus("Error", "error");
+                        setFeedback("SignalR connection failed.", true);
+                    });
+            } else {
+                setStatus("No token", "error");
+                setFeedback("No access token was available for live updates.", true);
+            }
+
+            messagesBox.addEventListener("scroll", function () {
+                if (messagesBox.scrollTop > 20) {
+                    return;
+                }
+
+                loadOlderMessages();
             });
 
-            beforeSequence = Math.min(...result.data.map(x => x.sequenceNumber));
-
-            messagesBox.scrollTop = messagesBox.scrollHeight - oldScrollHeight;
-
-            isLoadingOlder = false;
-        });
-        function appendMessage(senderId, content) {
-            const messageDiv = document.createElement("div");
-            messageDiv.classList.add("message-item");
-
-            const senderSpan = document.createElement("span");
-            senderSpan.classList.add("sender");
-            senderSpan.textContent = senderId + ": ";
-
-            const contentSpan = document.createElement("span");
-            contentSpan.classList.add("content");
-            contentSpan.textContent = content;
-
-            messageDiv.appendChild(senderSpan);
-            messageDiv.appendChild(contentSpan);
-
-            messagesBox.appendChild(messageDiv);
-
-            messagesBox.scrollTop = messagesBox.scrollHeight;
-        }
-        function prependMessage(senderId, content) {
-            const messageDiv = document.createElement("div");
-            messageDiv.classList.add("message-item");
-
-            const senderSpan = document.createElement("span");
-            senderSpan.classList.add("sender");
-            senderSpan.textContent = senderId + ": ";
-
-            const contentSpan = document.createElement("span");
-            contentSpan.classList.add("content");
-            contentSpan.textContent = content;
-
-            messageDiv.appendChild(senderSpan);
-            messageDiv.appendChild(contentSpan);
-
-            messagesBox.prepend(messageDiv);
-        }
-        function scrollToBottom() {
-            messagesBox.scrollTop = messagesBox.scrollHeight;
-        }
+            updateCount();
+            window.addEventListener("load", function () {
+                messagesBox.scrollTop = messagesBox.scrollHeight;
+            });
+        })();
     </script>
 }
