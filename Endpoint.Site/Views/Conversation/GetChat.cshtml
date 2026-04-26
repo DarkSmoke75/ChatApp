@@ -1,19 +1,26 @@
 ﻿@using Endpoint.Site.Models.ViewModels.ConversationViewModel
-@model List<MessageViewModel>
+@model ChatViewModel
 
 @{
     ViewData["Title"] = "GetChat";
     Layout = "~/Views/Shared/_Layout.cshtml";
 
-    var conversationId = Model.Any()
-        ? Model.First().ConversationId
+    var conversationId = Model.ConversationId;
+
+    var firstSequence = Model.Messages.Any()
+        ? Model.Messages.Min(x => x.SequenceNumber)
         : 0;
 }
-
+@if (TempData["Error"] != null)
+{
+    <div class="alert alert-danger">
+        @TempData["Error"]
+    </div>
+}
 <div class="chat-container">
 
-    <div id="messagesBox">
-        @foreach (var item in Model)
+    <div id="messagesBox" style="height:400px;overflow-y:auto">
+        @foreach (var item in Model.Messages)
         {
             <div class="message-item">
                 <span class="sender">@item.UserId:</span>
@@ -43,7 +50,7 @@
 
     <script>
         const messagesBox = document.getElementById("messagesBox");
-
+        window.addEventListener("load", scrollToBottom);
         const connection = new signalR.HubConnectionBuilder()
             .withUrl("https://localhost:7243/hubs/chat", {
                 withCredentials: true
@@ -64,7 +71,46 @@
             .catch(function (err) {
                 console.error("SignalR connection error:", err);
             });
+                    let beforeSequence = @firstSequence;
+        let isLoadingOlder = false;
+        let hasMoreMessages = true;
+        const conversationId = @conversationId;
 
+        messagesBox.addEventListener("scroll", async function () {
+            if (messagesBox.scrollTop > 20) return;
+            if (isLoadingOlder || !hasMoreMessages || beforeSequence <= 0) return;
+
+            isLoadingOlder = true;
+
+            const oldScrollHeight = messagesBox.scrollHeight;
+
+            const response = await fetch(
+                `/Conversation/LoadMoreMessages?conversationId=${conversationId}&beforeSequence=${beforeSequence}`
+            );
+
+            if (!response.ok) {
+                isLoadingOlder = false;
+                return;
+            }
+
+            const result = await response.json();
+
+            if (!result.isSuccess || !result.data || result.data.length === 0) {
+                hasMoreMessages = false;
+                isLoadingOlder = false;
+                return;
+            }
+
+            result.data.reverse().forEach(message => {
+                prependMessage(message.userId, message.content);
+            });
+
+            beforeSequence = Math.min(...result.data.map(x => x.sequenceNumber));
+
+            messagesBox.scrollTop = messagesBox.scrollHeight - oldScrollHeight;
+
+            isLoadingOlder = false;
+        });
         function appendMessage(senderId, content) {
             const messageDiv = document.createElement("div");
             messageDiv.classList.add("message-item");
@@ -82,6 +128,26 @@
 
             messagesBox.appendChild(messageDiv);
 
+            messagesBox.scrollTop = messagesBox.scrollHeight;
+        }
+        function prependMessage(senderId, content) {
+            const messageDiv = document.createElement("div");
+            messageDiv.classList.add("message-item");
+
+            const senderSpan = document.createElement("span");
+            senderSpan.classList.add("sender");
+            senderSpan.textContent = senderId + ": ";
+
+            const contentSpan = document.createElement("span");
+            contentSpan.classList.add("content");
+            contentSpan.textContent = content;
+
+            messageDiv.appendChild(senderSpan);
+            messageDiv.appendChild(contentSpan);
+
+            messagesBox.prepend(messageDiv);
+        }
+        function scrollToBottom() {
             messagesBox.scrollTop = messagesBox.scrollHeight;
         }
     </script>

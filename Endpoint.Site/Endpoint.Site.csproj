@@ -27,4 +27,8 @@
     <ProjectReference Include="..\ChatApp.Persistance\ChatApp.Persistance.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="Models\Dtos\Users\" />
+  </ItemGroup>
+
 </Project>

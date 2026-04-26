@@ -5,6 +5,7 @@ using ChatApp.Application.Services.Messages.Queries.GetMessage;
 using ChatApp.Application.Services.Users.Commands.RegisterUser;
 using ChatApp.Application.Services.Users.Commands.UserLogin;
 using ChatApp.Application.Services.Users.Queries.GetRoles;
+using ChatApp.Application.Services.Users.Queries.GetUsers;
 using FluentValidation;
 using Newtonsoft.Json.Serialization;
 using System;
@@ -33,9 +34,9 @@ namespace ChatApp.Application.Services.Users.FacadPattern
         private IRegisterUserService _RegisterUserService;
         public IRegisterUserService RegisterUserService
         {
-            get 
-            { 
-                return _RegisterUserService=_RegisterUserService ?? new RegisterUserService(_context,_RegisterUserValidator);
+            get
+            {
+                return _RegisterUserService = _RegisterUserService ?? new RegisterUserService(_context, _RegisterUserValidator);
             }
         }
         private IUserLoginService _userLoginService;
@@ -53,6 +54,14 @@ namespace ChatApp.Application.Services.Users.FacadPattern
             get
             {
                 return _getRolesService = _getRolesService ?? new GetRolesService(_context);
+            }
+        }
+        private IGetUsersService _getUsersService;
+        public IGetUsersService GetUsersService
+        {
+            get
+            {
+                return _getUsersService = _getUsersService ?? new GetUsersService(_context,_userContext);
             }
         }
     }
