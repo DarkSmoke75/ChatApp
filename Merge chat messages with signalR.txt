@@ -1,0 +1,82 @@
+﻿🎯 مشکل واقعی
+
+الان دو مسیر داری که پیام وارد UI میشه:
+
+1. از API (وقتی صفحه لود یا اسکرول می‌کنی)
+GET messages → render
+2. از SignalR (real-time)
+ReceiveMessage → append
+❗ مشکل وقتی پیش میاد که:
+سناریو:
+یوزر 1 پیام میفرسته
+SignalR → پیام به UI یوزر 2 اضافه میشه ✅
+یوزر 2 اسکرول میکنه بالا → API صدا میخوره
+همون پیام دوباره از API میاد ❌
+
+👉 نتیجه:
+پیام duplicate میشه
+
+🔥 Merge یعنی چی؟
+
+یعنی:
+
+SignalR + API → یک لیست واحد بدون تکرار
+✅ ساده‌ترین راه حل
+
+باید پیام‌ها را بر اساس MessageId یکتا کنی
+
+در JS یک Set یا Map نگه دار:
+const messageIds = new Set();
+📌 وقتی از SignalR پیام میاد:
+connection.on("ReceiveMessage", function (message) {
+
+    if (messageIds.has(message.messageId)) return;
+
+    messageIds.add(message.messageId);
+
+    appendMessage(message.senderId, message.content);
+});
+📌 وقتی از API پیام می‌گیری (scroll بالا):
+result.data.reverse().forEach(message => {
+
+    if (messageIds.has(message.messageId)) return;
+
+    messageIds.add(message.messageId);
+
+    prependMessage(message.userId, message.content);
+});
+💡 نکته مهم
+
+برای اینکه این کار درست کار کنه:
+
+باید MessageId داخل همه جا باشه:
+
+✔ در API
+MessageId = message.Id
+✔ در SignalR
+await _hub.Clients.User(userId)
+    .SendAsync("ReceiveMessage", new {
+        messageId = message.Id,
+        ...
+    });
+🎯 نتیجه merge
+
+بدون merge:
+
+SignalR → پیام اضافه
+API → همون پیام دوباره
+❌ duplicate
+
+با merge:
+
+SignalR → پیام اضافه
+API → تشخیص داده میشه → رد میشه
+✅ بدون تکرار
+🚀 مرحله بعدی حرفه‌ای
+
+بعد از این، می‌تونی اینا رو اضافه کنی:
+
+فقط اگر کاربر پایین صفحه بود auto-scroll کن
+unread counter
+typing indicator
+seen/delivered status

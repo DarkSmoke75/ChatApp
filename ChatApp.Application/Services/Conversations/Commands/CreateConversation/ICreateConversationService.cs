@@ -12,6 +12,6 @@ namespace ChatApp.Application.Services.Conversations.Commands.CreateConversation
 {
     public interface ICreateConversationService
     {
-        public ResultDto Execute(CreateConversationDto request);
+        public ResultDto<long> Execute(CreateConversationDto request);
     }
 }

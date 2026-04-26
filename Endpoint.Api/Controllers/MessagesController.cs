@@ -14,12 +14,10 @@ namespace Endpoint.Api.Controllers
     [ApiController]
     public class MessagesController : ControllerBase
     {
-        private readonly IDatabaseContext _context;
+        
         private readonly IMessageFacad _MessageFacad;
-        public MessagesController(IDatabaseContext context,IMessageFacad messageFacad)
-
+        public MessagesController(IMessageFacad messageFacad)
         {
-            _context = context;
             _MessageFacad = messageFacad;
         }
         

@@ -1,4 +1,5 @@
 ﻿using ChatApp.Application.Services.ApiClient;
+using ChatApp.Application.Services.Conversations.Commands.CreateConversation;
 using ChatApp.Application.Services.Conversations.Queries.GetConversations;
 using ChatApp.Application.Services.Messages.Commands.SendMessage;
 using ChatApp.Application.Services.Users.Commands.UserLogin;
@@ -30,7 +31,7 @@ namespace Endpoint.Site.Controllers
             var requestDto = new GetConversationRequestDto()
             {
                 Take = 20,
-                Cursor=0
+                Cursor = 0
             };
             var json = JsonSerializer.Serialize(requestDto);
             var content = new StringContent(json, Encoding.UTF8, "application/json");
@@ -63,12 +64,61 @@ namespace Endpoint.Site.Controllers
             }
 
             return View(result.Data);
-            
+
         }
         public async Task<IActionResult> NewChat()
         {
-            //create new conversation
-            return View();
+            var client = _apiClientService.CreateClientWithToken(HttpContext);
+
+            var response = await client.GetAsync("api/Users/GetUsers");
+
+            var json = await response.Content.ReadAsStringAsync();
+
+            var users = JsonSerializer.Deserialize<ApiResultDto<List<UsersViewModel>>>(
+                json,
+                new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+
+            return View(users.Data);
+           
+        }
+        public async Task<IActionResult> CreateChat(long userId)
+        {
+            var client = _apiClientService.CreateClientWithToken(HttpContext);
+            var requestDto = new CreateConversationDto()
+            {
+                IsGroup=false,
+                Title=(string?) null,
+                Participants = new List<CreateConversationParticipantDto>()
+                {
+                    new CreateConversationParticipantDto()
+                    {
+                        UserId=userId,
+                        Role=0
+                    }
+                }
+            };
+            var json = JsonSerializer.Serialize(requestDto);
+            var content = new StringContent(json, Encoding.UTF8, "application/json");
+            var response = await client.PostAsync($"api/Conversations/Create", content);
+            if (!response.IsSuccessStatusCode)
+            {
+                ModelState.AddModelError("", "خطا در ایجاد مکالمه");
+                return View("NewChat");
+            }
+            var responseJson = await response.Content.ReadAsStringAsync();
+            var result = JsonSerializer.Deserialize<ApiResultDto<long>>(
+                responseJson,
+                new JsonSerializerOptions
+                {
+                    PropertyNameCaseInsensitive = true
+                }
+            );
+            if (result == null || !result.IsSuccess)
+            {
+                ModelState.AddModelError("", "خطا در ایجاد مکالمه");
+                return View("NewChat");
+            }
+            return RedirectToAction("GetChat", new { id = result.Data });
         }
         public async Task<IActionResult> GetChat(long id)
         {
@@ -81,14 +131,14 @@ namespace Endpoint.Site.Controllers
             var json = JsonSerializer.Serialize(requestDto);
             var content = new StringContent(json, Encoding.UTF8, "application/json");
 
-            var response = await client.GetAsync($"api/Messages/Get/{id}?take={requestDto.Take}&cursor={requestDto.Cursor}");
+            var response = await client.GetAsync($"api/Messages/Get/{id}?take={requestDto.Take}");
 
             if (!response.IsSuccessStatusCode)
             {
                 ModelState.AddModelError("", "خطا در دریافت پیام ها");
                 return View();
             }
-            
+
 
             var responseJson = await response.Content.ReadAsStringAsync();
 
@@ -104,16 +154,37 @@ namespace Endpoint.Site.Controllers
             {
                 return View();
             }
+            var chatViewModel = new ChatViewModel()
+            {
+                ConversationId = id,
+                Messages = result.Data
+            };
+            return View(chatViewModel);
 
-            return View(result.Data);
-            
+        }
+        public async Task<IActionResult> LoadMoreMessages(long conversationId, long beforeSequence)
+        {
+            var client = _apiClientService.CreateClientWithToken(HttpContext);
+
+            var response = await client.GetAsync(
+                $"api/Messages/Get/{conversationId}?take=20&beforeSequence={beforeSequence}"
+            );
+
+            if (!response.IsSuccessStatusCode)
+                return BadRequest();
+
+            var responseJson = await response.Content.ReadAsStringAsync();
+
+            return Content(responseJson, "application/json");
+
         }
         public async Task<IActionResult> SendMessage(MessageViewModel message)
         {
-            
+
             if (!ModelState.IsValid)
             {
-                return View(message);
+                TempData["Error"] = "اطلاعات نامعتبر است";
+                return RedirectToAction("GetChat", "Conversation", new { id = message.ConversationId });
             }
             var client = _apiClientService.CreateClientWithToken(HttpContext);
 
@@ -123,7 +194,7 @@ namespace Endpoint.Site.Controllers
                 ConversationId = message.ConversationId,
                 MessageType = message.MessageType,
             };
-            
+
 
             var json = JsonSerializer.Serialize(requestDto);
             var content = new StringContent(json, Encoding.UTF8, "application/json");
@@ -133,7 +204,8 @@ namespace Endpoint.Site.Controllers
             if (!response.IsSuccessStatusCode)
             {
                 ModelState.AddModelError("", "خطا در ارسال پیام");
-                return View(message);
+                TempData["Error"] = "اطلاعات نامعتبر است";
+                return RedirectToAction("GetChat", "Conversation", new { id = message.ConversationId });
             }
 
             var responseContent = await response.Content.ReadAsStringAsync();
@@ -141,14 +213,15 @@ namespace Endpoint.Site.Controllers
             var result = JsonSerializer.Deserialize<ApiResultDto<ResultSendMessageDto>>(responseContent,
                 new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
 
-            if (result == null || !result.IsSuccess )
+            if (result == null || !result.IsSuccess)
             {
                 ModelState.AddModelError("", "خطا در دریافت پیام");
-                return View(message);
+                TempData["Error"] = "اطلاعات نامعتبر است";
+                return RedirectToAction("GetChat", "Conversation", new { id = message.ConversationId });
             }
-            
 
-            return RedirectToAction("GetChat", "Conversation",new { id=message.ConversationId });
+
+            return RedirectToAction("GetChat", "Conversation", new { id = message.ConversationId });
             //send message to conversation
             //return View("GetChat", message.ConversationId);
         }

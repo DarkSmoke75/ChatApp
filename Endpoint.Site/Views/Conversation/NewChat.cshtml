@@ -1,0 +1,18 @@
+﻿@using Endpoint.Site.Models.ViewModels.ConversationViewModel
+@model List<UsersViewModel>
+@{
+    ViewData["Title"] = "NewChat";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<h1>NewChat</h1>
+
+<div>
+    <h2>Select User</h2>
+    <ul>
+        @foreach (var user in Model)
+        {
+            <a asp-action="CreateChat" asp-route-userId="@user.UserId">@user.DisplayName</a>
+        }
+    </ul>
+</div>

@@ -35,6 +35,11 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Endpoint.App", "Endpoint.Ap
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ChatApp.SignalR", "ChatApp.SignalR\ChatApp.SignalR.csproj", "{31AA0D84-73FB-4335-9A81-0AF4E677C0A1}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "To Do List With Gpt", "To Do List With Gpt", "{2D792CEE-93AD-4B71-9E81-D1327DB62AE6}"
+	ProjectSection(SolutionItems) = preProject
+		Merge chat messages with signalR.txt = Merge chat messages with signalR.txt
+	EndProjectSection
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -96,6 +101,7 @@ Global
 		{3D6D0AE7-473E-4B3E-9C5B-D11DA2AF59B8} = {A6861BFB-2AF2-4FCA-866E-59F350FE702F}
 		{1EDD6BBF-F2B5-4E88-87FA-2CBB3D6CED30} = {A6861BFB-2AF2-4FCA-866E-59F350FE702F}
 		{31AA0D84-73FB-4335-9A81-0AF4E677C0A1} = {EA59E391-57A2-4B83-A51B-7C4C545CCBE9}
+		{2D792CEE-93AD-4B71-9E81-D1327DB62AE6} = {43313B3F-1A42-4807-9151-F9BA86F1B7A0}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {E6FF51B2-DA05-43F2-BDF4-DCCF74BC0D73}

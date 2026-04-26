@@ -16,7 +16,7 @@ namespace ChatApp.Application.Services.Conversations.Commands.CreateConversation
             _validator = validatior;
             _userContext = userContext;
         }
-        public ResultDto Execute(CreateConversationDto request)
+        public ResultDto<long> Execute(CreateConversationDto request)
         {
             var validationResult = _validator.Validate(request);
             if (validationResult.IsValid)
@@ -34,8 +34,9 @@ namespace ChatApp.Application.Services.Conversations.Commands.CreateConversation
 
                 if (existingConversation != null)
                 {
-                    return new ResultDto
+                    return new ResultDto<long>
                     {
+                        Data = existingConversation.Id,
                         IsSuccess = true,
                         Message = "Conversation already exists.",
                     };
@@ -54,15 +55,16 @@ namespace ChatApp.Application.Services.Conversations.Commands.CreateConversation
                     .ToList();
                 if (distinctUserIds.Count != request.Participants.Count)
                 {
-                    return new ResultDto
+                    return new ResultDto<long>
                     {
+                        
                         IsSuccess = false,
                         Message = "Duplicate users are not allowed."
                     };
                 }
                 if (distinctUserIds.Contains(currentUserId))
                 {
-                    return new ResultDto
+                    return new ResultDto<long>
                     {
                         IsSuccess = false,
                         Message = "You cannot chat with yourself."
@@ -107,15 +109,16 @@ namespace ChatApp.Application.Services.Conversations.Commands.CreateConversation
                 //    });
                 _context.ConversationParticipants.AddRange(conversationParticipants);
                 _context.SaveChanges();
-                return new ResultDto()
+                return new ResultDto<long>()
                 {
+                    Data = conversation.Id,
                     IsSuccess = true,
                     Message = "Conversation Created Successfully"
                 };
             }
             else
             {
-                return new ResultDto()
+                return new ResultDto<long>()
                 {
                     IsSuccess = false,
                     Message = validationResult.ToString()

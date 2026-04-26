@@ -12,14 +12,10 @@ namespace Endpoint.Api.Controllers
     [ApiController]
     public class ConversationsController : ControllerBase
     {
-        private readonly IDatabaseContext _context;
+        
         private readonly IConversationFacad _conversationFacad;
-        public ConversationsController(
-            IDatabaseContext context,
-            IConversationFacad conversationFacad)
-            
+        public ConversationsController(IConversationFacad conversationFacad)
         {
-            _context = context;
             _conversationFacad = conversationFacad;
         }
         [HttpGet("Get")]
