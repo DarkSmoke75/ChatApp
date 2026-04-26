@@ -1,0 +1,18 @@
+1. Add a proper authenticated session flow in MVC so login/logout state is reflected in the UI, not just via the token cookie.
+2. Show the current user’s display name in the header and differentiate “me” vs “other user” message bubbles visually.
+3. Replace the conversation list page with a true two-pane chat layout: conversations on the left, active thread on the right.
+4. Add unread state and last-message timestamps to conversation cards.
+5. Improve chat thread metadata by showing the other participant name in the thread title instead of only `Thread #id`.
+6. Add empty, loading, and error states that feel native across all pages.
+7. Persist and surface message send failures inline instead of only redirecting back with `TempData`.
+8. Normalize token handling between MVC pages and SignalR so browser refresh/reconnect behavior is fully predictable.
+9. Add `[Authorize]` protection consistently on MVC controllers/pages that require a signed-in user.
+10. Move the remaining inline JavaScript from `GetChat.cshtml` into a dedicated frontend script module.
+11. Add optimistic message rendering so sent messages appear immediately before the round trip completes.
+12. Add message timestamps and grouping in the thread UI.
+13. Add search/filter on `NewChat` and `Conversations` once the user list grows.
+14. Introduce pagination or cursor continuation for the conversation list, not just message history.
+15. Clean up duplicated/legacy UI routes like the placeholder `Chat` view if it is no longer needed.
+16. Add integration tests for the MVC controller flows: login, sign-up, conversation listing, create chat, send message.
+17. Revisit the build environment issue so `dotnet build/run` works cleanly and UI changes can be verified locally every time.
+18. Consider adding a lightweight client-side state model for the chat page if you want the UI to feel more app-like and less request-cycle driven.
