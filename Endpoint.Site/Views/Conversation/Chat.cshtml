@@ -1,8 +1,15 @@
-﻿
 @{
     ViewData["Title"] = "Chat";
-    Layout = "~/Views/Shared/_Layout.cshtml";
 }
 
-<h1>Chat</h1>
-
+<section class="status-page">
+    <div class="status-card">
+        <span class="eyebrow">Conversation view</span>
+        <h1>Open a thread from the conversation list</h1>
+        <p>This placeholder route is not the main chat surface. Use the conversation directory to choose a thread and open the full messaging UI.</p>
+        <div class="action-row">
+            <a asp-action="Index" asp-controller="Conversation" class="app-button">View conversations</a>
+            <a asp-action="NewChat" asp-controller="Conversation" class="app-button secondary">Start new chat</a>
+        </div>
+    </div>
+</section>

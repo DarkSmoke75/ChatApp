@@ -1,17 +1,42 @@
-﻿@using Endpoint.Site.Models.ViewModels.ConversationViewModel
+@using Endpoint.Site.Models.ViewModels.ConversationViewModel
 @model List<ConversationViewModel>
 @{
-    ViewData["Title"] = "Index";
-    Layout = "~/Views/Shared/_Layout.cshtml";
+    ViewData["Title"] = "Conversations";
 }
 
-@foreach (var item in Model)
-{
-    <a asp-action="GetChat" asp-route-id="@item.ConversationId">
-        @item.DisplayName
-    </a>
-}
-<a asp-action="NewChat" asp-controller="Conversation" class="btn btn-primary">
-    New Chat
-</a>
+<section class="directory-page">
+    <div class="directory-header">
+        <div>
+            <h1>Chats</h1>
+        </div>
+        <a asp-action="NewChat" asp-controller="Conversation" class="app-button">Start new chat</a>
+    </div>
 
+    @if (Model == null || !Model.Any())
+    {
+        <div class="status-card">
+            <h2>No conversations yet</h2>
+            <a asp-action="NewChat" asp-controller="Conversation" class="app-button">Open user list</a>
+        </div>
+    }
+    else
+    {
+        <div class="directory-grid">
+            @foreach (var item in Model)
+            {
+                var displayName = string.IsNullOrWhiteSpace(item.DisplayName) ? "Conversation" : item.DisplayName;
+                var avatarInitial = displayName.Substring(0, 1).ToUpper();
+                <a asp-action="GetChat" asp-route-id="@item.ConversationId" class="conversation-card">
+                    <div class="conversation-avatar">@avatarInitial</div>
+                    <div class="conversation-copy">
+                        <div class="conversation-topline">
+                            <h2>@displayName</h2>
+                            <span class="message-badge">#@item.ConversationId</span>
+                        </div>
+                        <p>@(string.IsNullOrWhiteSpace(item.LastMessage) ? "No messages yet. Open the thread to begin." : item.LastMessage)</p>
+                    </div>
+                </a>
+            }
+        </div>
+    }
+</section>

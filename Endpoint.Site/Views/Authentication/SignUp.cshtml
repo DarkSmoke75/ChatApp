@@ -1,69 +1,63 @@
-﻿@using Endpoint.Site.Models.ViewModels.AuthenticationViewModel
+@using Endpoint.Site.Models.ViewModels.AuthenticationViewModel
 @model SignUpViewModel
 @{
-    ViewData["Title"] = "SignUp";
-    Layout = "~/Views/Shared/_Layout.cshtml";
+    ViewData["Title"] = "Sign Up";
 }
 
-<!DOCTYPE html>
-<html lang="fa" dir="rtl">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ثبت نام</title>
-    @* <!-- font---------------------------------------->
-    <link rel="stylesheet" href="~/SiteTemplate/assets/css/vendor/font-awesome.min.css">
-    <link rel="stylesheet" href="~/SiteTemplate/assets/css/vendor/materialdesignicons.css">
-    <!-- plugin-------------------------------------->
-    <link rel="stylesheet" href="~/SiteTemplate/assets/css/vendor/bootstrap.css">
-    <link rel="stylesheet" href="~/SiteTemplate/assets/css/vendor/owl.carousel.min.css">
-    <link rel="stylesheet" href="~/SiteTemplate/assets/css/vendor/noUISlider.min.css">
-    <!-- main-style---------------------------------->
-    <link rel="stylesheet" href="~/SiteTemplate/assets/css/main.css"> *@
-</head>
-<body>
-    <form asp-action="SignUp" asp-controller="Authentication" method="post" class="form-account text-right">
+<section class="auth-page">
+    <div class="auth-shell auth-shell-compact auth-shell-signup">
+        <div class="auth-panel auth-form-panel auth-form-panel-compact">
+            <div class="auth-form-header">
+                <h1>Create account</h1>
+                <p>Join the conversation.</p>
+            </div>
 
-        <div asp-validation-summary="All" class="text-danger"></div>
-        <div class="form-account-title">
-            <label>ایمیل</label>
-            <input asp-for="Email" class="number-email-input" />
+            <form asp-action="SignUp" asp-controller="Authentication" method="post" class="auth-form">
+                <div asp-validation-summary="All" class="validation-summary"></div>
+
+                <div class="field-group">
+                    <label asp-for="Email"></label>
+                    <input asp-for="Email" class="app-input" placeholder="name@example.com" />
+                    <span asp-validation-for="Email" class="field-error"></span>
+                </div>
+
+                <div class="auth-grid">
+                    <div class="field-group">
+                        <label asp-for="Password"></label>
+                        <input asp-for="Password" type="password" class="app-input" placeholder="Password" />
+                        <span asp-validation-for="Password" class="field-error"></span>
+                    </div>
+
+                    <div class="field-group">
+                        <label asp-for="RePassword"></label>
+                        <input asp-for="RePassword" type="password" class="app-input" placeholder="Repeat password" />
+                        <span asp-validation-for="RePassword" class="field-error"></span>
+                    </div>
+                </div>
+
+                <div class="auth-grid">
+                    <div class="field-group">
+                        <label asp-for="Username"></label>
+                        <input asp-for="Username" class="app-input" placeholder="Username" />
+                        <span asp-validation-for="Username" class="field-error"></span>
+                    </div>
+
+                    <div class="field-group">
+                        <label asp-for="DisplayName"></label>
+                        <input asp-for="DisplayName" class="app-input" placeholder="Display name" />
+                        <span asp-validation-for="DisplayName" class="field-error"></span>
+                    </div>
+                </div>
+
+                <div class="auth-actions">
+                    <button type="submit" class="app-button auth-submit">Create account</button>
+                </div>
+            </form>
+
+            <div class="auth-inline-link">
+                <span>Already have an account?</span>
+                <a asp-action="Login" asp-controller="Authentication">Login</a>
+            </div>
         </div>
-        <br />
-        <div class="form-account-title">
-            <label>رمز عبور</label>
-            <input asp-for="Password" type="password" class="password-input" />
-        </div>
-        <br />
-
-        <div class="form-account-title">
-            <label>تکرار رمز عبور</label>
-            <input asp-for="RePassword" type="password" class="password-input" />
-        </div>
-        <br />
-
-        <div class="form-account-title">
-            <label>نام کاربری</label>
-            <input asp-for="Username" class="number-email-input" />
-        </div>
-        <br />
-
-        <div class="form-account-title">
-            <label>نام نمایشی</label>
-            <input asp-for="DisplayName" class="number-email-input" />
-        </div>
-        <br />
-        <br />
-        <div class="form-row-account">
-            <button type="submit" class="btn btn-primary btn-register">ثبت نام</button>
-        </div>
-
-    </form>
-    <a asp-action="Login" asp-controller="Authentication" class="btn btn-primary">
-        ورود
-    </a>
-</body>
-
-</html>
-
-
+    </div>
+</section>

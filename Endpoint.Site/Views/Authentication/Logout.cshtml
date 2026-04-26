@@ -1,8 +1,15 @@
-﻿
 @{
     ViewData["Title"] = "Logout";
-    Layout = "~/Views/Shared/_Layout.cshtml";
 }
 
-<h1>Logout</h1>
-
+<section class="status-page">
+    <div class="status-card">
+        <span class="eyebrow">Signed out</span>
+        <h1>You have been logged out</h1>
+        <p>Your access token cookie has been cleared. Sign in again to open conversations or start a new chat.</p>
+        <div class="action-row">
+            <a asp-action="Login" asp-controller="Authentication" class="app-button">Login again</a>
+            <a asp-action="SignUp" asp-controller="Authentication" class="app-button secondary">Create another account</a>
+        </div>
+    </div>
+</section>

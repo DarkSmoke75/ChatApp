@@ -1,18 +1,39 @@
-﻿@using Endpoint.Site.Models.ViewModels.ConversationViewModel
+@using Endpoint.Site.Models.ViewModels.ConversationViewModel
 @model List<UsersViewModel>
 @{
-    ViewData["Title"] = "NewChat";
-    Layout = "~/Views/Shared/_Layout.cshtml";
+    ViewData["Title"] = "New Chat";
 }
 
-<h1>NewChat</h1>
+<section class="directory-page">
+    <div class="directory-header">
+        <div>
+            <h1>New chat</h1>
+        </div>
+        <a asp-action="Index" asp-controller="Conversation" class="app-button secondary">Back to conversations</a>
+    </div>
 
-<div>
-    <h2>Select User</h2>
-    <ul>
-        @foreach (var user in Model)
-        {
-            <a asp-action="CreateChat" asp-route-userId="@user.UserId">@user.DisplayName</a>
-        }
-    </ul>
-</div>
+    @if (Model == null || !Model.Any())
+    {
+        <div class="status-card">
+            <h2>No users available</h2>
+            <a asp-action="SignUp" asp-controller="Authentication" class="app-button">Create account</a>
+        </div>
+    }
+    else
+    {
+        <div class="user-grid">
+            @foreach (var user in Model)
+            {
+                var displayName = string.IsNullOrWhiteSpace(user.DisplayName) ? "User" : user.DisplayName;
+                var avatarInitial = displayName.Substring(0, 1).ToUpper();
+                <a asp-action="CreateChat" asp-route-userId="@user.UserId" class="user-card">
+                    <div class="user-avatar">@avatarInitial</div>
+                    <div class="user-card-copy">
+                        <h2>@displayName</h2>
+                        <span class="conversation-kind">User ID: @user.UserId</span>
+                    </div>
+                </a>
+            }
+        </div>
+    }
+</section>

@@ -1,48 +1,41 @@
-﻿@using Endpoint.Site.Models.ViewModels.AuthenticationViewModel
+@using Endpoint.Site.Models.ViewModels.AuthenticationViewModel
 @model LoginViewModel
 @{
     ViewData["Title"] = "Login";
-    Layout = "~/Views/Shared/_Layout.cshtml";
 }
 
-<!DOCTYPE html>
-<html lang="fa" dir="rtl">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ورود</title>
-    @* <!-- font---------------------------------------->
-    <link rel="stylesheet" href="~/SiteTemplate/assets/css/vendor/font-awesome.min.css">
-    <link rel="stylesheet" href="~/SiteTemplate/assets/css/vendor/materialdesignicons.css">
-    <!-- plugin-------------------------------------->
-    <link rel="stylesheet" href="~/SiteTemplate/assets/css/vendor/bootstrap.css">
-    <link rel="stylesheet" href="~/SiteTemplate/assets/css/vendor/owl.carousel.min.css">
-    <link rel="stylesheet" href="~/SiteTemplate/assets/css/vendor/noUISlider.min.css">
-    <!-- main-style---------------------------------->
-    <link rel="stylesheet" href="~/SiteTemplate/assets/css/main.css"> *@
-</head>
-<body>
-    <form asp-action="Login" asp-controller="Authentication" method="post" class="form-account text-right">
-        <div asp-validation-summary="All" class="text-danger"></div>
-        <div class="form-account-title">
-            <label>ایمیل</label>
-            <input asp-for="Email" class="number-email-input" />
-        </div>
-        <br />
-        <div class="form-account-title">
-            <label>رمز عبور</label>
-            <input asp-for="Password" type="password" class="password-input" />
-        </div>
-        <br />
-        <div class="form-row-account">
-            <button type="submit" class="btn btn-primary btn-register">ورود</button>
-        </div>
+<section class="auth-page">
+    <div class="auth-shell auth-shell-compact">
+        <div class="auth-panel auth-form-panel auth-form-panel-compact">
+            <div class="auth-form-header">
+                <h1>Login</h1>
+                <p>Welcome back.</p>
+            </div>
 
-    </form>
-    <a asp-action="SignUp" asp-controller="Authentication" class="btn btn-primary">
-        ثبت نام
-    </a>
-</body>
+            <form asp-action="Login" asp-controller="Authentication" method="post" class="auth-form">
+                <div asp-validation-summary="All" class="validation-summary"></div>
 
-</html>
+                <div class="field-group">
+                    <label asp-for="Email"></label>
+                    <input asp-for="Email" class="app-input" placeholder="name@example.com" />
+                    <span asp-validation-for="Email" class="field-error"></span>
+                </div>
 
+                <div class="field-group">
+                    <label asp-for="Password"></label>
+                    <input asp-for="Password" type="password" class="app-input" placeholder="Your password" />
+                    <span asp-validation-for="Password" class="field-error"></span>
+                </div>
+
+                <div class="auth-actions">
+                    <button type="submit" class="app-button auth-submit">Login</button>
+                </div>
+            </form>
+
+            <div class="auth-inline-link">
+                <span>Don’t have an account?</span>
+                <a asp-action="SignUp" asp-controller="Authentication">Sign up</a>
+            </div>
+        </div>
+    </div>
+</section>

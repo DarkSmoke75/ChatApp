@@ -1,105 +1,126 @@
-﻿@* @model Endpoint.Site.Models.ViewModels.ChatTestViewModel *@
-
 @{
-    // ViewData["Title"] = "Chat Test";
+    ViewData["Title"] = "Chat Workspace";
 }
 
-<h2>Chat Test</h2>
+<section class="chat-page">
+    <div class="chat-shell">
+        <aside class="chat-sidebar">
+            <div class="sidebar-brand">
+                <span class="sidebar-badge">MVC Client</span>
+                <h1>Chat Workspace</h1>
+                <p>Connect a browser token, join the SignalR hub, and send test messages without leaving the page.</p>
+            </div>
 
-@* <div>
-    <input type="text" id="messageInput" placeholder="Type message..." />
-    <button type="button" id="sendBtn">Send</button>
-</div>
+            <div class="sidebar-card hero-card">
+                <img src="~/images/chat-hero.png" alt="Chat workspace illustration" class="hero-image" />
+            </div>
 
-<hr />
+            <div class="sidebar-card">
+                <div class="card-heading">
+                    <h2>Connection</h2>
+                    <span class="status-pill" id="connectionStatus">Offline</span>
+                </div>
 
-<ul id="messagesList"></ul>
+                <div class="field-group">
+                    <label for="apiBaseUrl">API Base URL</label>
+                    <input id="apiBaseUrl" class="app-input" type="text" value="https://localhost:7243" />
+                </div>
 
-<!-- Token از MVC -->
-<input type="hidden" id="accessToken" value="@Model.AccessToken" />
+                <div class="field-group">
+                    <label for="tokenInput">JWT Token</label>
+                    <textarea id="tokenInput" class="app-input app-textarea" rows="5" placeholder="Paste a JWT token or keep using the one already stored in localStorage."></textarea>
+                </div>
 
-<!-- SignalR -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/7.0.5/signalr.min.js"></script>
+                <div class="action-row">
+                    <button type="button" class="app-button secondary" id="saveTokenBtn">Save token</button>
+                    <button type="button" class="app-button ghost" id="clearTokenBtn" title="Clear token">Clear</button>
+                </div>
 
-<script>
-    (function () {
+                <div class="field-group split-fields">
+                    <div>
+                        <label for="conversationId">Conversation ID</label>
+                        <input id="conversationId" class="app-input" type="number" min="1" value="2" />
+                    </div>
+                    <div>
+                        <label for="messageType">Message Type</label>
+                        <input id="messageType" class="app-input" type="number" min="0" value="0" />
+                    </div>
+                </div>
 
-        const tokenInput = document.getElementById("accessToken");
-        const token = tokenInput ? tokenInput.value : null;
+                <div class="action-row">
+                    <button type="button" class="app-button" id="connectBtn">Connect</button>
+                    <button type="button" class="app-button secondary" id="loadMessagesBtn">Load history</button>
+                </div>
+            </div>
 
-        if (!token) {
-            console.error("❌ Token not found");
-            return;
-        }
+            <div class="sidebar-card tips-card">
+                <h2>Quick Notes</h2>
+                <ul>
+                    <li>Each browser can store its own token in local storage.</li>
+                    <li>The hub uses the same JWT as the API calls.</li>
+                    <li>Messages arriving from SignalR appear instantly in the activity panel.</li>
+                </ul>
+            </div>
+        </aside>
 
-        const messageInput = document.getElementById("messageInput");
-        const sendBtn = document.getElementById("sendBtn");
-        const messagesList = document.getElementById("messagesList");
+        <main class="chat-main">
+            <section class="surface-panel intro-panel">
+                <div>
+                    <span class="eyebrow">Live tester</span>
+                    <h2>Send and inspect messages from one place</h2>
+                    <p>Use this page as a clean front end for your existing chat backend while you test different browser sessions.</p>
+                </div>
+                <div class="connection-meta">
+                    <div class="meta-item">
+                        <span class="meta-label">Current token</span>
+                        <strong id="tokenState">Missing</strong>
+                    </div>
+                    <div class="meta-item">
+                        <span class="meta-label">Hub state</span>
+                        <strong id="hubState">Disconnected</strong>
+                    </div>
+                </div>
+            </section>
 
-        // اتصال SignalR
-        const connection = new signalR.HubConnectionBuilder()
-            .withUrl("https://localhost:7243/hubs/chat", {
-                accessTokenFactory: () => token
-            })
-            .withAutomaticReconnect()
-            .build();
+            <section class="surface-panel message-panel">
+                <div class="panel-header">
+                    <div>
+                        <h2>Activity</h2>
+                        <p>Incoming SignalR payloads and loaded history appear here.</p>
+                    </div>
+                    <button type="button" class="icon-button" id="clearMessagesBtn" title="Clear messages">
+                        <span aria-hidden="true">×</span>
+                    </button>
+                </div>
 
-        // دریافت پیام
-        connection.on("ReceiveMessage", function (message) {
-            const li = document.createElement("li");
-            li.textContent = JSON.stringify(message);
-            messagesList.appendChild(li);
-        });
+                <div id="messagesList" class="messages-list" aria-live="polite">
+                    <div class="empty-state" id="emptyState">
+                        <h3>No messages yet</h3>
+                        <p>Connect with a valid token, then load history or send a message to start the session.</p>
+                    </div>
+                </div>
+            </section>
 
-        // شروع اتصال
-        async function startConnection() {
-            try {
-                await connection.start();
-                console.log("✅ Connected to SignalR");
-            } catch (err) {
-                console.error("❌ Connection failed:", err);
-                setTimeout(startConnection, 3000);
-            }
-        }
+            <section class="surface-panel composer-panel">
+                <div class="panel-header">
+                    <div>
+                        <h2>Compose</h2>
+                        <p>Send a message to the selected conversation.</p>
+                    </div>
+                </div>
 
-        startConnection();
+                <div class="composer-box">
+                    <textarea id="messageInput" class="composer-input" rows="4" placeholder="Type a message and press Send or Ctrl+Enter."></textarea>
+                    <div class="composer-actions">
+                        <span class="helper-text" id="feedbackText">Ready.</span>
+                        <button type="button" class="app-button" id="sendBtn">Send message</button>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+</section>
 
-        // ارسال پیام
-        async function sendMessage() {
-
-            const message = messageInput.value.trim();
-
-            if (!message) return;
-
-            try {
-                await fetch("https://localhost:7243/api/messages/send", {
-                    method: "POST",
-                    headers: {
-                        "Content-Type": "application/json",
-                        "Authorization": "Bearer " + token
-                    },
-                    body: JSON.stringify({
-                        conversationId: 2,
-                        content: message,
-                        messageType: 0
-                    })
-                });
-
-                messageInput.value = "";
-            } catch (err) {
-                console.error("❌ Send failed:", err);
-            }
-        }
-
-        // دکمه
-        sendBtn.addEventListener("click", sendMessage);
-
-        // ارسال با Enter
-        messageInput.addEventListener("keypress", function (e) {
-            if (e.key === "Enter") {
-                sendMessage();
-            }
-        });
-
-    })();
-</script> *@
+@section Scripts {
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/7.0.5/signalr.min.js"></script>
+}
