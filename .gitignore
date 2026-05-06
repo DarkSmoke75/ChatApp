@@ -100,7 +100,6 @@ appsettings.*.Local.json
 *.apk
 *.aab
 *.ipa
-*.app
 *.appx
 *.appxbundle
 *.msix
