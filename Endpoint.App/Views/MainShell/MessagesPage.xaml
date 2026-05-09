@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="Endpoint.App.Views.MainShell.MessagesPage"
+             xmlns:models="clr-namespace:Endpoint.App.Models.Dtos"
+             xmlns:vm="clr-namespace:Endpoint.App.ViewModels.Conversation"
+             Title="MessagesPage">
+    <Grid
+        RowDefinitions="*,Auto"
+        BackgroundColor="#F5F5F5">
+
+        <!-- Messages List -->
+        <CollectionView
+            Grid.Row="0"
+            ItemsSource="{Binding Messages}"
+            SelectionMode="None"
+            Margin="0,8,0,0">
+
+            <CollectionView.ItemTemplate>
+                <DataTemplate x:DataType="models:MessageDto">
+
+                    <Grid Padding="12,6">
+                        <Border
+                            Padding="12,8"
+                            BackgroundColor="White"
+                            StrokeThickness="0"
+                            HorizontalOptions="Start"
+                            MaximumWidthRequest="320">
+
+                            <Border.StrokeShape>
+                                <RoundRectangle CornerRadius="16" />
+                            </Border.StrokeShape>
+
+                            <VerticalStackLayout Spacing="4">
+
+                                <Label
+                                    Text="{Binding UserId}"
+                                    FontSize="11"
+                                    TextColor="#777777" />
+
+                                <Label
+                                    Text="{Binding Content}"
+                                    FontSize="15"
+                                    TextColor="#222222"
+                                    LineBreakMode="WordWrap" />
+
+                            </VerticalStackLayout>
+                        </Border>
+                    </Grid>
+
+                </DataTemplate>
+            </CollectionView.ItemTemplate>
+        </CollectionView>
+
+        <!-- Message Input Bar -->
+        <Grid
+            Grid.Row="1"
+            Padding="10"
+            ColumnDefinitions="*,Auto"
+            BackgroundColor="White"
+            ColumnSpacing="8">
+
+            <Border
+                Grid.Column="0"
+                Padding="12,0"
+                BackgroundColor="#F1F1F1"
+                StrokeThickness="0"
+                HeightRequest="46">
+
+                <Border.StrokeShape>
+                    <RoundRectangle CornerRadius="23" />
+                </Border.StrokeShape>
+
+                <Entry
+                    Text="{Binding MessageText}"
+                    TextColor="Black"
+                    Placeholder="Type a message..."
+                    BackgroundColor="Transparent"
+                    FontSize="15"
+                    VerticalOptions="Center" />
+            </Border>
+
+            <Button
+                Grid.Column="1"
+                Text="Send"
+                Command="{Binding SendMessageCommand}"
+                HeightRequest="46"
+                CornerRadius="23"
+                Padding="18,0" />
+
+        </Grid>
+
+    </Grid>
+</ContentPage>

@@ -1,4 +1,4 @@
-namespace Endpoint.App.Pages.MainShell;
+namespace Endpoint.App.Views.MainShell;
 
 public partial class ProfilePage : ContentPage
 {

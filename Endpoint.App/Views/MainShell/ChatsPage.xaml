@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="Endpoint.App.Views.MainShell.ChatsPage"
+             xmlns:models="clr-namespace:Endpoint.App.Models.Dtos"
+             xmlns:vm="clr-namespace:Endpoint.App.ViewModels.Conversation"
+             x:Name="ChatsRoot"
+             Title="ChatsPage">
+    <!--<VerticalStackLayout>
+        <Label 
+            Text="Chats"
+            VerticalOptions="Center" 
+            HorizontalOptions="Center" />
+        <Button Command="{Binding GetConversationsCommand}"
+                Text="Load Conversations"/>-->
+    
+    <Grid>
+        <CollectionView
+            ItemsSource="{Binding Conversations}"
+            SelectionMode="None">
+
+            <CollectionView.ItemTemplate>
+                <DataTemplate x:DataType="models:ConversationDto">
+
+                    <Grid
+                        Padding="16,12"
+                        RowDefinitions="Auto,Auto"
+                        BackgroundColor="Transparent"
+                        ColumnDefinitions="*,Auto">
+                        <Grid.GestureRecognizers>
+                            <TapGestureRecognizer
+                                Command="{Binding Source={x:Reference ChatsRoot}, Path=BindingContext.OpenConversationCommand}"
+                                CommandParameter="{Binding ConversationId}" />
+                        </Grid.GestureRecognizers>
+
+                        <Label
+                            Grid.Row="0"
+                            Grid.Column="0"
+                            Text="{Binding DisplayName}"
+                            FontAttributes="Bold"
+                            FontSize="16" />
+
+                        <Label
+                            Grid.Row="1"
+                            Grid.Column="0"
+                            Text="{Binding LastMessage}"
+                            FontSize="14"
+                            TextColor="Gray"
+                            LineBreakMode="TailTruncation" />
+
+                        <Label
+                            Grid.Row="0"
+                            Grid.RowSpan="2"
+                            Grid.Column="1"
+                            Text="›"
+                            FontSize="24"
+                            VerticalOptions="Center" />
+
+                    </Grid>
+
+                </DataTemplate>
+            </CollectionView.ItemTemplate>
+        </CollectionView>
+    </Grid>
+    <!--</VerticalStackLayout>-->
+</ContentPage>

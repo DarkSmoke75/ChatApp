@@ -2,6 +2,7 @@
 using ChatApp.Application.Interfaces.FacadPatterns;
 using ChatApp.Application.Services.Conversations.Commands.CreateConversation;
 using ChatApp.Application.Services.Conversations.Queries.GetConversations;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
@@ -10,6 +11,7 @@ namespace Endpoint.Api.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
+    [Authorize]
     public class ConversationsController : ControllerBase
     {
         

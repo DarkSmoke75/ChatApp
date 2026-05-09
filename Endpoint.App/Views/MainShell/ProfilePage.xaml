@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
-             x:Class="Endpoint.App.Pages.MainShell.ChatsPagexaml"
-             Title="ChatsPagexaml">
+             x:Class="Endpoint.App.Views.MainShell.ProfilePage"
+             Title="ProfilePage">
     <VerticalStackLayout>
         <Label 
             Text="Welcome to .NET MAUI!"
