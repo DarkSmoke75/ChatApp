@@ -1,4 +1,4 @@
-﻿namespace Endpoint.App.Pages
+﻿namespace Endpoint.App.Views
 {
     public partial class MainPage : ContentPage
     {
