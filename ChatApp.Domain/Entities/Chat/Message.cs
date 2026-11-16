@@ -19,6 +19,7 @@ namespace ChatApp.Domain.Entities.Chat
         public DateTime? EditDate { get; set; }
         public MessageType MessageType { get; set; }
         public long SequenceNumber { get; set; }
+        public Guid? ClientRequestId { get; set; }
     }
     public enum MessageType
     {

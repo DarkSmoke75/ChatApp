@@ -6,12 +6,13 @@
              xmlns:vm="clr-namespace:Endpoint.App.ViewModels.Conversation"
              Title="MessagesPage">
     <Grid
-        RowDefinitions="*,Auto"
+        RowDefinitions="Auto,*,Auto,Auto"
         BackgroundColor="#F5F5F5">
+        <Button Grid.Row="0" Text="Load older messages" Command="{Binding LoadOlderCommand}" />
 
         <!-- Messages List -->
         <CollectionView
-            Grid.Row="0"
+            Grid.Row="1"
             ItemsSource="{Binding Messages}"
             SelectionMode="None"
             Margin="0,8,0,0">
@@ -43,6 +44,8 @@
                                     FontSize="15"
                                     TextColor="#222222"
                                     LineBreakMode="WordWrap" />
+                                <Label Text="{Binding SentAt, StringFormat='{0:g}'}" FontSize="10" TextColor="#777777" />
+                                <Label Text="{Binding DeliveryState}" FontSize="10" TextColor="#777777" />
 
                             </VerticalStackLayout>
                         </Border>
@@ -52,9 +55,10 @@
             </CollectionView.ItemTemplate>
         </CollectionView>
 
+        <Label Grid.Row="2" Text="{Binding StatusText}" Padding="10" TextColor="#555555" />
         <!-- Message Input Bar -->
         <Grid
-            Grid.Row="1"
+            Grid.Row="3"
             Padding="10"
             ColumnDefinitions="*,Auto"
             BackgroundColor="White"
@@ -73,6 +77,7 @@
 
                 <Entry
                     Text="{Binding MessageText}"
+                    IsEnabled="{Binding CanEditMessage}"
                     TextColor="Black"
                     Placeholder="Type a message..."
                     BackgroundColor="Transparent"
@@ -82,7 +87,7 @@
 
             <Button
                 Grid.Column="1"
-                Text="Send"
+                Text="{Binding SendButtonText}"
                 Command="{Binding SendMessageCommand}"
                 HeightRequest="46"
                 CornerRadius="23"

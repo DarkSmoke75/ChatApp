@@ -1,4 +1,4 @@
-﻿using ChatApp.Application.Services.ApiClient;
+using ChatApp.Application.Services.ApiClient;
 using ChatApp.Application.Services.Conversations.Commands.CreateConversation;
 using ChatApp.Application.Services.Conversations.Queries.GetConversations;
 using ChatApp.Application.Services.Messages.Commands.SendMessage;
@@ -8,12 +8,19 @@ using Endpoint.Site.Models.Dtos.Common;
 using Endpoint.Site.Models.ViewModels.ConversationViewModel;
 using Microsoft.AspNetCore.Identity.Data;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authentication.Cookies;
+using System.Net;
+using System.Net.Http.Json;
 using NuGet.Protocol.Plugins;
 using System.Text;
 using System.Text.Json;
 
 namespace Endpoint.Site.Controllers
 {
+    [Authorize]
+    [ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
     public class ConversationController : Controller
     {
         private readonly IWebHostEnvironment _environment;
@@ -37,6 +44,9 @@ namespace Endpoint.Site.Controllers
             var content = new StringContent(json, Encoding.UTF8, "application/json");
 
             var response = await client.GetAsync($"api/Conversations/Get?take={requestDto.Take}&cursor={requestDto.Cursor}");
+
+            if (response.StatusCode == HttpStatusCode.Unauthorized)
+                return await EndExpiredSession();
 
             if (!response.IsSuccessStatusCode)
             {
@@ -66,11 +76,17 @@ namespace Endpoint.Site.Controllers
             return View(result.Data);
 
         }
+        [HttpGet]
         public async Task<IActionResult> NewChat()
         {
             var client = _apiClientService.CreateClientWithToken(HttpContext);
 
             var response = await client.GetAsync("api/Users/GetUsers");
+
+            if (response.StatusCode == HttpStatusCode.Unauthorized)
+                return await EndExpiredSession();
+            if (!response.IsSuccessStatusCode)
+                return StatusCode((int)response.StatusCode);
 
             var json = await response.Content.ReadAsStringAsync();
 
@@ -78,9 +94,10 @@ namespace Endpoint.Site.Controllers
                 json,
                 new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
 
-            return View(users.Data);
+            return View(users?.Data ?? new List<UsersViewModel>());
            
         }
+        [HttpPost]
         public async Task<IActionResult> CreateChat(long userId)
         {
             var client = _apiClientService.CreateClientWithToken(HttpContext);
@@ -100,6 +117,8 @@ namespace Endpoint.Site.Controllers
             var json = JsonSerializer.Serialize(requestDto);
             var content = new StringContent(json, Encoding.UTF8, "application/json");
             var response = await client.PostAsync($"api/Conversations/Create", content);
+            if (response.StatusCode == HttpStatusCode.Unauthorized)
+                return await EndExpiredSession();
             if (!response.IsSuccessStatusCode)
             {
                 ModelState.AddModelError("", "خطا در ایجاد مکالمه");
@@ -120,6 +139,7 @@ namespace Endpoint.Site.Controllers
             }
             return RedirectToAction("GetChat", new { id = result.Data });
         }
+        [HttpGet]
         public async Task<IActionResult> GetChat(long id)
         {
             var client = _apiClientService.CreateClientWithToken(HttpContext);
@@ -133,10 +153,13 @@ namespace Endpoint.Site.Controllers
 
             var response = await client.GetAsync($"api/Messages/Get/{id}?take={requestDto.Take}");
 
+            if (response.StatusCode == HttpStatusCode.Unauthorized)
+                return await EndExpiredSession();
+
             if (!response.IsSuccessStatusCode)
             {
                 ModelState.AddModelError("", "خطا در دریافت پیام ها");
-                return View();
+                return StatusCode((int)response.StatusCode);
             }
 
 
@@ -152,7 +175,7 @@ namespace Endpoint.Site.Controllers
 
             if (result == null || !result.IsSuccess)
             {
-                return View();
+                return BadRequest("Unable to load this conversation.");
             }
             var chatViewModel = new ChatViewModel()
             {
@@ -162,13 +185,17 @@ namespace Endpoint.Site.Controllers
             return View(chatViewModel);
 
         }
-        public async Task<IActionResult> LoadMoreMessages(long conversationId, long beforeSequence)
+        [HttpGet]
+        public async Task<IActionResult> LoadMoreMessages(long conversationId, long? beforeSequence, long? afterSequence)
         {
             var client = _apiClientService.CreateClientWithToken(HttpContext);
 
             var response = await client.GetAsync(
-                $"api/Messages/Get/{conversationId}?take=20&beforeSequence={beforeSequence}"
+                $"api/Messages/Get/{conversationId}?take=20&beforeSequence={beforeSequence}&afterSequence={afterSequence}"
             );
+
+            if (response.StatusCode == HttpStatusCode.Unauthorized)
+                return await EndExpiredSession();
 
             if (!response.IsSuccessStatusCode)
                 return BadRequest();
@@ -178,52 +205,33 @@ namespace Endpoint.Site.Controllers
             return Content(responseJson, "application/json");
 
         }
+        [HttpPost]
         public async Task<IActionResult> SendMessage(MessageViewModel message)
         {
-
             if (!ModelState.IsValid)
-            {
-                TempData["Error"] = "اطلاعات نامعتبر است";
-                return RedirectToAction("GetChat", "Conversation", new { id = message.ConversationId });
-            }
+                return BadRequest(new { isSuccess = false, message = "Invalid message." });
             var client = _apiClientService.CreateClientWithToken(HttpContext);
-
-            var requestDto = new RequestSendMessageDto()
+            var request = new RequestSendMessageDto
             {
-                Content = message.Content,
-                ConversationId = message.ConversationId,
+                ConversationId = message.ConversationId, Content = message.Content,
                 MessageType = message.MessageType,
+                ClientRequestId = message.ClientRequestId ?? Guid.Empty
             };
-
-
-            var json = JsonSerializer.Serialize(requestDto);
-            var content = new StringContent(json, Encoding.UTF8, "application/json");
-
-            var response = await client.PostAsync("api/Messages/Send", content);
-
-            if (!response.IsSuccessStatusCode)
+            using var response = await client.PostAsJsonAsync("api/Messages/Send", request);
+            if (response.StatusCode == HttpStatusCode.Unauthorized)
+                return await EndExpiredSession();
+            var body = await response.Content.ReadAsStringAsync();
+            return new ContentResult
             {
-                ModelState.AddModelError("", "خطا در ارسال پیام");
-                TempData["Error"] = "اطلاعات نامعتبر است";
-                return RedirectToAction("GetChat", "Conversation", new { id = message.ConversationId });
-            }
-
-            var responseContent = await response.Content.ReadAsStringAsync();
-
-            var result = JsonSerializer.Deserialize<ApiResultDto<ResultSendMessageDto>>(responseContent,
-                new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
-
-            if (result == null || !result.IsSuccess)
-            {
-                ModelState.AddModelError("", "خطا در دریافت پیام");
-                TempData["Error"] = "اطلاعات نامعتبر است";
-                return RedirectToAction("GetChat", "Conversation", new { id = message.ConversationId });
-            }
-
-
-            return RedirectToAction("GetChat", "Conversation", new { id = message.ConversationId });
-            //send message to conversation
-            //return View("GetChat", message.ConversationId);
+                Content = body, ContentType = "application/json", StatusCode = (int)response.StatusCode
+            };
+        }
+        private async Task<IActionResult> EndExpiredSession()
+        {
+            await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
+            Response.Cookies.Delete("AccessToken");
+            HttpContext.Session.Clear();
+            return RedirectToAction("Login", "Authentication");
         }
     }
 }

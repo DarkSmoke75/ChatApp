@@ -26,13 +26,16 @@
             {
                 var displayName = string.IsNullOrWhiteSpace(user.DisplayName) ? "User" : user.DisplayName;
                 var avatarInitial = displayName.Substring(0, 1).ToUpper();
-                <a asp-action="CreateChat" asp-route-userId="@user.UserId" class="user-card">
+                <form asp-action="CreateChat" method="post">
+                    <input type="hidden" name="userId" value="@user.UserId" />
+                    <button type="submit" class="user-card user-card-button">
                     <div class="user-avatar">@avatarInitial</div>
                     <div class="user-card-copy">
                         <h2>@displayName</h2>
                         <span class="conversation-kind">User ID: @user.UserId</span>
                     </div>
-                </a>
+                    </button>
+                </form>
             }
         </div>
     }

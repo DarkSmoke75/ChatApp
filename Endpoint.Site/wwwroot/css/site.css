@@ -103,6 +103,21 @@ textarea {
   font-weight: 600;
 }
 
+.nav-signout {
+  border: 0;
+  background: transparent;
+  font: inherit;
+  cursor: pointer;
+}
+
+.user-card-button {
+  width: 100%;
+  text-align: start;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+}
+
 .site-nav-link:hover,
 .site-nav-link.active {
   background: rgba(23, 32, 51, 0.06);

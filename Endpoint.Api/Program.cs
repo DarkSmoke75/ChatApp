@@ -13,6 +13,7 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
+using System.Security.Claims;
 
 var builder = WebApplication.CreateBuilder(args);
 var jwtSettings = builder.Configuration.GetSection("Jwt");
@@ -37,16 +38,27 @@ builder.Services.AddAuthentication(options =>
     };
     options.Events = new JwtBearerEvents
     {
+        OnTokenValidated = context =>
+        {
+            var userId = context.Principal?.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (!long.TryParse(userId, out var parsedUserId) || parsedUserId <= 0)
+            {
+                context.Fail("A valid user identifier is required.");
+            }
+
+            return Task.CompletedTask;
+        },
         OnMessageReceived = context =>
         {
             var path = context.HttpContext.Request.Path;
 
             if (path.StartsWithSegments("/hubs/chat"))
             {
-                var token = context.Request.Cookies["AccessToken"];
-
-                Console.WriteLine("SignalR Cookie Token Exists: " + !string.IsNullOrEmpty(token));
-
+                // Browser WebSockets/SSE supply access_token; native clients can use
+                // Authorization. Never accept query tokens outside this hub path.
+                var token = context.Request.Query["access_token"].ToString();
+                if (string.IsNullOrEmpty(token) && !context.Request.Headers.ContainsKey("Authorization"))
+                    token = context.Request.Cookies["AccessToken"];
                 if (!string.IsNullOrEmpty(token))
                 {
                     context.Token = token;

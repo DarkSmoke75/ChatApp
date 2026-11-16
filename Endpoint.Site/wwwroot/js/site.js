@@ -24,6 +24,8 @@
     const emptyState = document.getElementById("emptyState");
 
     let connection = null;
+    let pendingSend = null;
+    const renderedIds = new Set();
 
     function getToken() {
         return (localStorage.getItem(tokenStorageKey) || "").trim();
@@ -82,6 +84,8 @@
     }
 
     function renderMessage(message, mode) {
+        if (message.messageId && renderedIds.has(String(message.messageId))) return;
+        if (message.messageId) renderedIds.add(String(message.messageId));
         removeEmptyState();
 
         const item = document.createElement("article");
@@ -205,6 +209,7 @@
             const payload = await response.json();
             const items = Array.isArray(payload.data) ? payload.data : [];
             messagesList.innerHTML = "";
+            renderedIds.clear();
 
             if (items.length === 0) {
                 messagesList.appendChild(emptyState);
@@ -224,6 +229,7 @@
     }
 
     async function sendMessage() {
+        if (sendBtn.disabled) return;
         const token = getToken();
         const baseUrl = getApiBaseUrl();
         const conversationId = Number(conversationIdInput.value);
@@ -240,6 +246,10 @@
             return;
         }
 
+        pendingSend ??= { conversationId, content, messageType, clientRequestId: crypto.randomUUID() };
+        sendBtn.disabled = true;
+        [messageInput, conversationIdInput, messageTypeInput, apiBaseUrlInput, saveTokenBtn, clearTokenBtn]
+            .forEach(element => element.disabled = true);
         try {
             const response = await fetch(baseUrl + "/api/messages/send", {
                 method: "POST",
@@ -247,22 +257,28 @@
                     "Content-Type": "application/json",
                     "Authorization": "Bearer " + token
                 },
-                body: JSON.stringify({
-                    conversationId: conversationId,
-                    content: content,
-                    messageType: messageType
-                })
+                body: JSON.stringify(pendingSend)
             });
 
             if (!response.ok) {
+                if (response.status === 400 || response.status === 401) pendingSend = null;
                 throw new Error("Send request failed with status " + response.status);
             }
 
+            const result = await response.json();
+            if (!result.isSuccess || !result.data) throw new Error("Send was not confirmed.");
+            renderMessage(result.data, "live");
+            pendingSend = null;
             messageInput.value = "";
             setFeedback("Message sent.", false);
         } catch (error) {
             console.error(error);
-            setFeedback("Message send failed. Check the token and conversation id.", true);
+            setFeedback("Send not confirmed. Retry preserves the request ID; rejected requests can be edited.", true);
+        } finally {
+            sendBtn.disabled = false;
+            sendBtn.textContent = pendingSend ? "Retry send" : "Send message";
+            if (!pendingSend) [messageInput, conversationIdInput, messageTypeInput, apiBaseUrlInput, saveTokenBtn, clearTokenBtn]
+                .forEach(element => element.disabled = false);
         }
     }
 
@@ -292,6 +308,7 @@
 
     clearMessagesBtn.addEventListener("click", function () {
         messagesList.innerHTML = "";
+        renderedIds.clear();
         messagesList.appendChild(emptyState);
         setFeedback("Activity cleared.", false);
     });

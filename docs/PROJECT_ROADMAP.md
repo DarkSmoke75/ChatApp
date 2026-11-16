@@ -1,5 +1,11 @@
 # Review and implementation roadmap
 
+Implementation follow-up: registration, web sessions/antiforgery, messaging contracts,
+transactional sends, reconnect recovery and MAUI sending have since been updated.
+This document preserves the original review. See [current implementation and
+verification status](MESSAGING_IMPLEMENTATION.md) before treating a finding below
+as still unchanged.
+
 Reviewed November 16, 2026. Scope: source code, configuration, migration, MVC client and MAUI client. This is a static review, not a verified runtime audit. The .NET CLI was unavailable, so builds, database migrations, tests and device/UI runs were not performed. This documentation change does not fix application behavior.
 
 ## Assessment

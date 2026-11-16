@@ -6,6 +6,9 @@ namespace ChatApp.Application.Services.Users.Commands.RegisterUser
     {
         public RegisterUserValidator()
         {
+            RuleFor(p => p.Username).NotEmpty().Length(3, 32)
+                .Matches(@"^[\p{L}\p{N}_]+$")
+                .WithMessage("Username must contain 3–32 letters, numbers or underscores.");
             RuleFor(p => p.Email)
                 .NotEmpty().WithMessage("Email Cant Be Empty")
                 .NotNull().WithMessage("Email Cant Be Null")

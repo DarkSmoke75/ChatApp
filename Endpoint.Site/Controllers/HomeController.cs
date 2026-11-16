@@ -1,5 +1,6 @@
 using Endpoint.Site.Models;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
 using System.Diagnostics;
 
 namespace Endpoint.Site.Controllers
@@ -13,16 +14,10 @@ namespace Endpoint.Site.Controllers
             _logger = logger;
         }
         
+        [Authorize]
+        [ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
         public IActionResult Index()
         {
-            var token = Request.Cookies["AccessToken"];
-
-            if (string.IsNullOrWhiteSpace(token))
-            {
-                return RedirectToAction("Login", "Authentication");
-            }
-
-            ViewBag.AccessToken = token;
             return View();
         }
         

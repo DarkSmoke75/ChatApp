@@ -1,49 +1,29 @@
-﻿using Endpoint.App.Services.Authentication;
-using System;
-using System.Collections.Generic;
-using System.Linq;
+using Endpoint.App.Services.Authentication;
 using System.Net.Http.Headers;
-using System.Text;
-using System.Text.Json;
-using System.Threading.Tasks;
+using System.Net.Http.Json;
 
-namespace Endpoint.App.Services.Api
+namespace Endpoint.App.Services.Api;
+
+public class ApiClientService
 {
-    public class ApiClientService
+    private readonly HttpClient _httpClient;
+    private readonly TokenService _tokenService;
+    public Uri BaseAddress => _httpClient.BaseAddress!;
+    public ApiClientService(HttpClient httpClient, TokenService tokenService)
+    { _httpClient = httpClient; _tokenService = tokenService; }
+
+    private async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
     {
-        private readonly HttpClient _httpClient;
-        private readonly TokenService _tokenService;
-        public ApiClientService(HttpClient httpClient,TokenService tokenService)
-        {
-            _httpClient = httpClient;
-            _tokenService = tokenService;
-        }
-        private async Task AddTokenAsync()
+        using (request)
         {
             var token = await _tokenService.GetTokenAsync();
-
-            _httpClient.DefaultRequestHeaders.Authorization = null;
-
             if (!string.IsNullOrWhiteSpace(token))
-            {
-                _httpClient.DefaultRequestHeaders.Authorization =
-                    new AuthenticationHeaderValue("Bearer", token);
-            }
-        }
-        public async Task<HttpResponseMessage> GetAsync(string url)
-        {
-            await AddTokenAsync();
-            var token = await _tokenService.GetTokenAsync();
-            return await _httpClient.GetAsync(url);
-        }
-        public async Task<HttpResponseMessage> PostAsync<T>(string url,T data)
-        {
-            await AddTokenAsync();
-
-            var json = JsonSerializer.Serialize(data);
-            var content = new StringContent(json, Encoding.UTF8, "application/json");
-
-            return await _httpClient.PostAsync(url, content);
+                request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+            return await _httpClient.SendAsync(request, cancellationToken);
         }
     }
+    public Task<HttpResponseMessage> GetAsync(string url, CancellationToken cancellationToken = default) =>
+        SendAsync(new HttpRequestMessage(HttpMethod.Get, url), cancellationToken);
+    public Task<HttpResponseMessage> PostAsync<T>(string url, T data, CancellationToken cancellationToken = default) =>
+        SendAsync(new HttpRequestMessage(HttpMethod.Post, url) { Content = JsonContent.Create(data) }, cancellationToken);
 }

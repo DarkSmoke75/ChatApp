@@ -59,7 +59,7 @@ namespace ChatApp.Application.Services.Users.Commands.RegisterUser
             };
             List<UserInRole> userInRoles = new List<UserInRole>();
 
-            var role = _Context.Roles.FirstOrDefault(r => r.Name == "User");
+            var role = _Context.Roles.FirstOrDefault(r => r.Name == nameof(ChatApp.Common.Roles.UserRoles.Member));
             if (role == null)
             {
                 return new ResultDto<ResultRegisterUserDto>()

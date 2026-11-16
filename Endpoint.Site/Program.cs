@@ -9,6 +9,8 @@ using ChatApp.Application.Services.Users.FacadPattern;
 using ChatApp.Persistance.Contexts;
 using FluentValidation;
 using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
@@ -17,7 +19,8 @@ using System.Text;
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
-builder.Services.AddControllersWithViews();
+builder.Services.AddControllersWithViews(options =>
+    options.Filters.Add(new AutoValidateAntiforgeryTokenAttribute()));
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddDistributedMemoryCache();
 builder.Services.AddSession();
@@ -31,8 +34,23 @@ builder.Services
 
         options.Cookie.Name = "ChatApp.Auth";
         options.Cookie.HttpOnly = true;
-        options.SlidingExpiration = true;
-        options.ExpireTimeSpan = TimeSpan.FromDays(7);
+        options.Cookie.SameSite = SameSiteMode.Strict;
+        options.Cookie.SecurePolicy = builder.Environment.IsDevelopment()
+            ? CookieSecurePolicy.SameAsRequest : CookieSecurePolicy.Always;
+        // The API token cannot be refreshed yet; never extend the web session past it.
+        options.SlidingExpiration = false;
+        options.Events.OnValidatePrincipal = async context =>
+        {
+            var token = context.Request.Cookies["AccessToken"];
+            var sessionToken = context.Properties.GetTokenValue("access_token");
+            if (string.IsNullOrEmpty(token) || string.IsNullOrEmpty(sessionToken) ||
+                !string.Equals(token, sessionToken, StringComparison.Ordinal))
+            {
+                context.RejectPrincipal();
+                context.Response.Cookies.Delete("AccessToken");
+                await context.HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
+            }
+        };
     });
 builder.Services.AddAuthorization();
 builder.Services.AddHttpClient("api", client =>

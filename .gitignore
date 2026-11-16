@@ -137,3 +137,4 @@ Desktop.ini
 *.swp
 *.swo
 ~$*
+.tools/

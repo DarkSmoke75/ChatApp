@@ -1,6 +1,21 @@
-@Endpoint.Api_HostAddress = http://localhost:5201
+@Endpoint.Api_HostAddress = https://localhost:7243
+@token = replace-with-a-development-login-token
+@conversationId = 1
+# Generate a new UUID for each logical send; keep it unchanged for retries.
+@clientRequestId = 31c2b266-b69a-485b-b9c0-eb1bb3a041d7
 
-GET {{Endpoint.Api_HostAddress}}/weatherforecast/
+GET {{Endpoint.Api_HostAddress}}/api/Messages/Get/{{conversationId}}?take=20&afterSequence=0
+Authorization: Bearer {{token}}
 Accept: application/json
 
 ###
+POST {{Endpoint.Api_HostAddress}}/api/Messages/Send
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "conversationId": {{conversationId}},
+  "clientRequestId": "{{clientRequestId}}",
+  "content": "Hello",
+  "messageType": 0
+}

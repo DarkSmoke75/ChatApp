@@ -31,6 +31,11 @@ namespace ChatApp.Persistance.Contexts
             SeedData(modelBuilder);
 
             modelBuilder.Entity<User>().HasIndex(u => u.Email).IsUnique();
+            modelBuilder.Entity<Message>().HasIndex(m => m.ConversationId);
+            modelBuilder.Entity<Message>().HasIndex(m => m.SenderId);
+            modelBuilder.Entity<Message>().HasIndex(m => new { m.ConversationId, m.SequenceNumber }).IsUnique();
+            modelBuilder.Entity<Message>().HasIndex(m => new { m.SenderId, m.ClientRequestId })
+                .IsUnique().HasFilter("[ClientRequestId] IS NOT NULL");
 
             // UserInRole
             modelBuilder.Entity<UserInRole>()

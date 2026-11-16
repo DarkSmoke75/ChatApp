@@ -5,6 +5,7 @@
     ViewData["Title"] = "Chat";
     var conversationId = Model.ConversationId;
     var firstSequence = Model.Messages.Any() ? Model.Messages.Min(x => x.SequenceNumber) : 0;
+    var lastSequence = Model.Messages.Any() ? Model.Messages.Max(x => x.SequenceNumber) : 0;
     var serverToken = Context.Request.Cookies["AccessToken"] ?? "";
     var userDisplayNames = ViewBag.UserDisplayNames as Dictionary<long, string> ?? new Dictionary<long, string>();
 }
@@ -56,10 +57,10 @@
                             var displayName = userDisplayNames.TryGetValue(item.UserId, out var name)
                                 ? name
                                 : $"User {item.UserId}";
-                            <article class="thread-message-item" data-sequence="@item.SequenceNumber">
+                            <article class="thread-message-item" data-message-id="@item.MessageId" data-sequence="@item.SequenceNumber">
                                 <div class="message-topline">
                                     <span class="message-badge">@displayName</span>
-                                    <span class="message-time">#@item.SequenceNumber</span>
+                                    <span class="message-time">@item.SentAt.ToString("u")</span>
                                 </div>
                                 <p class="message-content">@item.Content</p>
                             </article>
@@ -70,6 +71,7 @@
 
             <div class="surface-panel composer-panel">
                 <form asp-action="SendMessage" method="post" class="composer-box">
+                    <input type="hidden" name="ClientRequestId" value="@Guid.NewGuid()" />
                     <input type="hidden" name="ConversationId" value="@conversationId" />
                     <input type="hidden" name="MessageType" value="0" />
 
@@ -81,6 +83,7 @@
                         placeholder="Write a message and press Send."
                         autocomplete="off"
                         required></textarea>
+                    <noscript>Enable JavaScript to send messages and recover live updates.</noscript>
 
                     <div class="composer-actions">
                         <span class="helper-text" id="threadFeedbackText">Ready</span>
@@ -94,6 +97,7 @@
 
 @section Scripts {
     <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/8.0.0/signalr.min.js"></script>
+    <script src="~/js/message-state.js" asp-append-version="true"></script>
     <script>
         (function () {
             const messagesBox = document.getElementById("messagesBox");
@@ -102,6 +106,9 @@
             const countEl = document.getElementById("loadedMessageCount");
             const emptyState = document.getElementById("threadEmptyState");
             const conversationId = @conversationId;
+            const state = ChatMessageState.create(conversationId,
+                Array.from(messagesBox.querySelectorAll("[data-message-id]"), el => ({ messageId: el.dataset.messageId })),
+                @lastSequence);
             let beforeSequence = @firstSequence;
             let isLoadingOlder = false;
             let hasMoreMessages = true;
@@ -137,10 +144,13 @@
             }
 
             function createMessage(message, prepend) {
+                if (!state.accept(message)) return;
                 removeEmptyState();
                 const item = document.createElement("article");
                 item.className = "thread-message-item";
                 item.dataset.sequence = message.sequenceNumber ?? "";
+                item.dataset.messageId = message.messageId;
+                if (beforeSequence === 0) beforeSequence = message.sequenceNumber;
                 const topLine = document.createElement("div");
                 topLine.className = "message-topline";
 
@@ -150,7 +160,7 @@
 
                 const time = document.createElement("span");
                 time.className = "message-time";
-                time.textContent = "#" + (message.sequenceNumber ?? "live");
+                time.textContent = new Date(message.sentAt).toLocaleString();
 
                 const content = document.createElement("p");
                 content.className = "message-content";
@@ -161,11 +171,9 @@
                 item.appendChild(topLine);
                 item.appendChild(content);
 
-                if (prepend) {
-                    messagesBox.prepend(item);
-                } else {
-                    messagesBox.appendChild(item);
-                }
+                const next = Array.from(messagesBox.querySelectorAll("[data-sequence]"))
+                    .find(el => Number(el.dataset.sequence) > message.sequenceNumber);
+                messagesBox.insertBefore(item, next || null);
 
                 updateCount();
             }
@@ -181,6 +189,10 @@
                 try {
                     const oldScrollHeight = messagesBox.scrollHeight;
                     const response = await fetch(`/Conversation/LoadMoreMessages?conversationId=${conversationId}&beforeSequence=${beforeSequence}`);
+                    if (response.redirected) {
+                        window.location.assign(response.url);
+                        return;
+                    }
                     if (!response.ok) {
                         throw new Error("Failed to load older messages.");
                     }
@@ -207,6 +219,69 @@
                 }
             }
 
+            let recovering = false;
+            async function catchUp() {
+                if (recovering) return;
+                recovering = true;
+                try {
+                    for (;;) {
+                        const response = await fetch(`/Conversation/LoadMoreMessages?conversationId=${conversationId}&afterSequence=${state.cursor}`);
+                        if (response.redirected) { window.location.assign(response.url); return; }
+                        if (!response.ok) throw new Error("History unavailable");
+                        const result = await response.json();
+                        if (!result.isSuccess || !Array.isArray(result.data)) throw new Error("History unavailable");
+                        result.data.forEach(message => createMessage(message, false));
+                        state.advancePage(result.data);
+                        if (result.data.length < 20) break;
+                    }
+                } catch (error) {
+                    setFeedback("Reconnecting to message history. Your draft is preserved.", true);
+                } finally { recovering = false; }
+            }
+
+            const composer = document.querySelector(".composer-box");
+            const input = document.getElementById("messageInput");
+            const submit = composer.querySelector("button[type=submit]");
+            let pending = null;
+            composer.addEventListener("submit", async function (event) {
+                event.preventDefault();
+                if (submit.disabled) return;
+                pending ??= new FormData(composer);
+                submit.disabled = true;
+                input.readOnly = true;
+                setFeedback("Sending…", false);
+                try {
+                    const response = await fetch(composer.action, { method: "POST", body: pending });
+                    if (response.redirected) { window.location.assign(response.url); return; }
+                    const result = await response.json();
+                    if (!response.ok || !result.isSuccess) {
+                        if (response.status === 400) {
+                            pending = null; input.readOnly = false;
+                            composer.elements.ClientRequestId.value = crypto.randomUUID();
+                        }
+                        throw new Error(result.message || "Message was not confirmed.");
+                    }
+                    createMessage(result.data, false);
+                    pending = null;
+                    input.value = "";
+                    input.readOnly = false;
+                    composer.elements.ClientRequestId.value = crypto.randomUUID();
+                    submit.textContent = "Send message";
+                    setFeedback("Sent", false);
+                    messagesBox.scrollTop = messagesBox.scrollHeight;
+                } catch (error) {
+                    submit.textContent = "Retry send";
+                    setFeedback(`${error.message} Retry uses the same message ID.`, true);
+                } finally { submit.disabled = false; }
+            });
+
+            const recoveryTimer = setInterval(() => { if (!document.hidden) catchUp(); }, 15000);
+            window.addEventListener("focus", catchUp);
+            window.addEventListener("online", catchUp);
+            document.addEventListener("visibilitychange", () => { if (!document.hidden) catchUp(); });
+            window.addEventListener("pagehide", () => clearInterval(recoveryTimer));
+            catchUp();
+
             if (accessToken) {
                 const connection = new signalR.HubConnectionBuilder()
                     .withUrl("https://localhost:7243/hubs/chat", {
@@ -216,6 +291,10 @@
                     .build();
 
                 connection.on("ReceiveMessage", function (message) {
+                    if (!message || String(message.conversationId) !== String(conversationId)) {
+                        return;
+                    }
+
                     createMessage(message, false);
                     messagesBox.scrollTop = messagesBox.scrollHeight;
                     setFeedback("A live message arrived.", false);
@@ -227,17 +306,27 @@
 
                 connection.onreconnected(function () {
                     setStatus("Connected", "connected");
+                    catchUp();
                 });
 
-                connection.start()
-                    .then(function () {
+                let stopped = false;
+                let retryTimer;
+                async function startConnection() {
+                    if (stopped) return;
+                    try {
+                        await connection.start();
                         setStatus("Connected", "connected");
-                    })
-                    .catch(function (err) {
-                        console.error(err);
-                        setStatus("Error", "error");
-                        setFeedback("SignalR connection failed.", true);
-                    });
+                        await catchUp();
+                    } catch {
+                        setStatus("Reconnecting", "connecting");
+                        retryTimer = setTimeout(startConnection, 5000);
+                    }
+                }
+                connection.onclose(startConnection);
+                window.addEventListener("pagehide", () => {
+                    stopped = true; clearTimeout(retryTimer); connection.stop();
+                });
+                startConnection();
             } else {
                 setStatus("No token", "error");
                 setFeedback("No access token was available for live updates.", true);

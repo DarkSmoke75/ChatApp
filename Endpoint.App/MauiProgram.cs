@@ -36,6 +36,7 @@ namespace Endpoint.App
             builder.Services.AddSingleton<HttpClient>();
             builder.Services.AddTransient<ConversationViewModel>();
             builder.Services.AddTransient<MessagesService>();
+            builder.Services.AddTransient<ChatConnection>();
             builder.Services.AddTransient<MessagesViewModel>();
             builder.Services.AddHttpClient<ApiClientService>(client =>
             {

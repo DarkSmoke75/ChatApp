@@ -4,6 +4,7 @@
     {
         public long ConversationId { get; set; }
         public long? BeforeSequence { get; set; }
+        public long? AfterSequence { get; set; }
         public int Take { get; set; }
     }
 }

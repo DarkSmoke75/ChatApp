@@ -7,11 +7,13 @@ using ChatApp.Application.Services.Messages.Commands.SendMessage;
 using ChatApp.Application.Services.Messages.Queries.GetMessage;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
 
 namespace Endpoint.Api.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
+    [Authorize]
     public class MessagesController : ControllerBase
     {
         
@@ -22,13 +24,15 @@ namespace Endpoint.Api.Controllers
         }
         
         [HttpGet("Get/{conversationId}")]
-        public IActionResult GetMessages(long conversationId,[FromQuery] int take,[FromQuery] long? beforeSequence)
+        public IActionResult GetMessages(long conversationId,[FromQuery] int take = 20,
+            [FromQuery] long? beforeSequence = null, [FromQuery] long? afterSequence = null)
         {
             var request = new GetConversationMessagesRequestDto()
             {
                 ConversationId = conversationId,
                 Take = take,
-                BeforeSequence = beforeSequence
+                BeforeSequence = beforeSequence,
+                AfterSequence = afterSequence
             };
             var result = _MessageFacad.GetMessageService.Execute(request);
             if (result.IsSuccess)
@@ -44,7 +48,7 @@ namespace Endpoint.Api.Controllers
         public async Task<IActionResult> SendMessage([FromBody] RequestSendMessageDto request)
         {
             var result = await _MessageFacad.SendMessageService.Execute(request);
-            return Ok(result);
+            return result.IsSuccess ? Ok(result) : BadRequest(result);
         }
     }
 }

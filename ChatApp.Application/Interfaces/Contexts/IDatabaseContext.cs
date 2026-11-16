@@ -11,6 +11,7 @@ namespace ChatApp.Application.Interfaces.Contexts
 {
     public interface IDatabaseContext
     {
+        Microsoft.EntityFrameworkCore.Infrastructure.DatabaseFacade Database { get; }
         DbSet<User> Users { get; set; }
         DbSet<Role> Roles { get; set; }
         DbSet<UserInRole> UserInRoles { get; set; }

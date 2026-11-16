@@ -9,7 +9,11 @@ namespace ChatApp.Application.Services.Messages.Queries.GetMessage
             RuleFor(m => m.ConversationId)
                 .GreaterThan(0).WithMessage("ConversationId is Invalid)");
             RuleFor(m => m.Take)
-                .LessThanOrEqualTo(50).WithMessage("Cant Take More Than 50 Messages");
+                .InclusiveBetween(1, 50);
+            RuleFor(m => m.BeforeSequence).GreaterThan(0).When(m => m.BeforeSequence.HasValue);
+            RuleFor(m => m.AfterSequence).GreaterThanOrEqualTo(0).When(m => m.AfterSequence.HasValue);
+            RuleFor(m => m).Must(m => !m.BeforeSequence.HasValue || !m.AfterSequence.HasValue)
+                .WithMessage("Use beforeSequence or afterSequence, not both.");
         }
     }
 }

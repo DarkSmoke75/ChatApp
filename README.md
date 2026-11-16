@@ -2,18 +2,18 @@
 
 A chat application built with ASP.NET Core, SQL Server, SignalR, and .NET MAUI. It includes a shared backend, an MVC web client, and a mobile/desktop client in progress.
 
-**Status: development prototype.** Core chat flows exist in source, but registration on a fresh database, authentication consistency, message reliability, and mobile sending need work before release. See the [detailed review and roadmap](docs/PROJECT_ROADMAP.md).
+**Status: development prototype.** Registration, web sessions, retry-safe message storage, reconnect recovery and mobile sending have received implementation updates. Full database/device verification is still required before release. Read the [implementation and rollout notes](docs/MESSAGING_IMPLEMENTATION.md) and the [original review and roadmap](docs/PROJECT_ROADMAP.md).
 
 ## Current features
 
 | Area | Implemented in source | Remaining work |
 | --- | --- | --- |
-| Accounts | Registration/login, password hashing, JWT issuance | Seeded-role fix, consistent sessions, recovery and refresh |
+| Accounts | Registration/login, seeded member role, username validation, JWT and web sessions | Runtime verification, recovery and refresh |
 | Conversations | Private-chat creation/reuse, listing, group data model | Ordering, pagination, group permissions |
-| Messages | SQL persistence, participant checks, sequence-based history | Concurrent sends, retry safety, consistent contracts |
-| Live updates | SignalR hub, notifications and browser receiver | Conversation filtering, reconnect catch-up, secure send path |
-| Web | Account forms, user directory, conversations, composer/history | Authentication state, error handling, smoother sending |
-| MAUI | Authentication, secure token storage, conversation/history screens | Sending, live updates, new-chat flow, device configuration |
+| Messages | SQL persistence, participant checks, serialized sequences, request-ID deduplication, shared contract | Apply migration and verify concurrent behavior on SQL Server |
+| Live updates | Conversation filtering, deduplication, reconnect/history catch-up | End-to-end verification, background push notifications |
+| Web | Protected sessions/forms, asynchronous sends and in-view retries | Browser verification, persistent offline outbox |
+| MAUI | Authentication, history, send/retry states, live updates and resume recovery | Device verification, new-chat flow, environment configuration |
 
 Media enum values and status entities do not imply working uploads, calls, or read receipts. End-to-end encryption is not implemented.
 
@@ -86,7 +86,7 @@ dotnet tool install --global dotnet-ef --version 9.0.15
 dotnet ef database update --project ChatApp.Persistance/ChatApp.Persistance.csproj --startup-project Endpoint.Api/Endpoint.Api.csproj
 ```
 
-**Known first-run blocker:** the migration seeds `Admin` and `Member`, but `RegisterUserService` searches for `User`. Align registration with the intended member role before testing sign-up. There is no seeded demo account.
+Registration now uses the seeded `Member` role. There is no seeded demo account. The new `ReliableMessages` migration must be applied before running the updated API. Existing duplicate sequence values will stop that migration for review; see the [rollout notes](docs/MESSAGING_IMPLEMENTATION.md).
 
 ### 4. Start the API and web client
 
@@ -114,7 +114,7 @@ Open `Endpoint.App` with a matching MAUI workload and select a target. Android, 
 
 `Endpoint.App/MauiProgram.cs` uses a fixed LAN HTTP address for Android and `https://localhost:7243` otherwise. Configure an address reachable from your device/emulator with valid HTTPS trust. A physical device's localhost means the device itself.
 
-The mobile message composer currently binds to an unimplemented send command. Follow roadmap phase 5 before expecting two-way mobile chat.
+The mobile composer now implements sending, retry states and live/history recovery. It still needs a provisioned build and real-device verification; pending retries are not persisted across app termination.
 
 ## API overview
 
@@ -126,13 +126,14 @@ The mobile message composer currently binds to an unimplemented send command. Fo
 | GET | `/api/Conversations/Get?take=20` | List conversations; cursor currently ignored |
 | POST | `/api/Conversations/Create` | Create/reuse conversation |
 | GET | `/api/Messages/Get/{id}?take=20&beforeSequence=100` | History; omit cursor for newest messages |
+| GET | `/api/Messages/Get/{id}?take=20&afterSequence=100` | Ascending catch-up after the last completed history page |
 | POST | `/api/Messages/Send` | Persist message and notify recipients |
 
-Use `Authorization: Bearer <token>` for protected REST calls. Messages/users lack controller-level authorization even though their services require an identity; this is a defect, not anonymous API support. Error bodies and HTTP status codes need standardization.
+Use `Authorization: Bearer <token>` for protected REST calls. Messages, users, conversations and the hub require authentication. Sending requires a `clientRequestId` UUID; keep the same ID and payload when retrying the same logical message. Only text messages are currently accepted. Further error/status standardization remains planned.
 
 ## Verification and contributing
 
-Source review completed November 16, 2026. `dotnet --info` failed because the CLI was unavailable. Builds, migrations, UI behavior and device runs were not verified. No automated test project or GitHub Actions workflow was found.
+The initial review was completed November 16, 2026. A local .NET 10 SDK is now available in `.tools`, and dependency-free contract, timeline, browser-state and syntax checks pass. The app still targets .NET 9; required application dependencies are missing locally. Full builds, database migrations and browser/device runs remain unverified. See [test instructions](docs/MESSAGING_IMPLEMENTATION.md#automated-checks). GitHub Actions is not yet configured.
 
 After the initial fixes, use two browser profiles to register users, create a chat, exchange messages, reload, paginate history and reconnect. Use a third account to check access denial. The [roadmap](docs/PROJECT_ROADMAP.md) includes release gates and regression checks.
 
